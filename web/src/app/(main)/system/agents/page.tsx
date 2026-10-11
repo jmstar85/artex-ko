@@ -35,16 +35,18 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
+import { useBuiltinText } from "@/lib/builtin-i18n";
 import type { Agent } from "@/lib/types";
 
 // AgentGridCard is one clickable tile opening the agent's editor drawer. Custom
 // (non-builtin) agents get a delete button.
 function AgentGridCard({ agent, onOpen, onDeleted }: { agent: Agent; onOpen: () => void; onDeleted: () => void }) {
   const t = useTranslations("agentsPage");
+  const lx = useBuiltinText();
   async function del() {
     try {
       await api.deleteAgent(agent.key);
-      toast.success(t("deleted", { name: agent.name }));
+      toast.success(t("deleted", { name: lx(agent.name) }));
       onDeleted();
     } catch (e) {
       toast.error(t("deleteFailed", { msg: (e as Error).message }));
@@ -55,7 +57,7 @@ function AgentGridCard({ agent, onOpen, onDeleted }: { agent: Agent; onOpen: () 
       <button type="button" onClick={onOpen} className="flex flex-col gap-2 text-left">
         <div className="flex flex-wrap items-center gap-2">
           <Bot className="text-muted-foreground size-4" />
-          <span className="text-sm font-medium">{agent.name}</span>
+          <span className="text-sm font-medium">{lx(agent.name)}</span>
           <span className="text-muted-foreground font-mono text-xs">{agent.key}</span>
           {agent.builtin ? (
             <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
@@ -73,7 +75,9 @@ function AgentGridCard({ agent, onOpen, onDeleted }: { agent: Agent; onOpen: () 
           )}
         </div>
         {/* biome-ignore lint/nursery/useNullishCoalescing: 설명 폴백 — 빈 설명도 안내 문구로 대체해야 하므로 || 가 의도된 동작이다(?? 는 빈 문자열을 그대로 노출한다) */}
-        <p className="text-muted-foreground line-clamp-2 min-h-8 text-xs">{agent.description || t("noDescription")}</p>
+        <p className="text-muted-foreground line-clamp-2 min-h-8 text-xs">
+          {lx(agent.description) || t("noDescription")}
+        </p>
         <div className="text-muted-foreground flex flex-wrap gap-1.5 text-[10px]">
           <span className="rounded border px-1.5 py-0.5">MCP {agent.mcp_count ?? 0}</span>
           <span className="rounded border px-1.5 py-0.5">Skill {agent.skill_count ?? 0}</span>
@@ -95,7 +99,7 @@ function AgentGridCard({ agent, onOpen, onDeleted }: { agent: Agent; onOpen: () 
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>{t("deleteTitle", { name: agent.name })}</AlertDialogTitle>
+              <AlertDialogTitle>{t("deleteTitle", { name: lx(agent.name) })}</AlertDialogTitle>
               <AlertDialogDescription>{t("deleteDesc")}</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -193,6 +197,7 @@ function CreateAgentDialog({ onCreated }: { onCreated: (key: string) => void }) 
 
 export default function AgentsPage() {
   const t = useTranslations("agentsPage");
+  const lx = useBuiltinText();
   const [agents, setAgents] = React.useState<Agent[]>([]);
   const [editKey, setEditKey] = React.useState<string | null>(null);
 
@@ -250,7 +255,7 @@ export default function AgentsPage() {
             <>
               <SheetHeader className="px-4">
                 <SheetTitle className="flex items-center gap-2">
-                  {editing.name}
+                  {lx(editing.name)}
                   <span className="text-muted-foreground font-mono text-xs">{editing.key}</span>
                   {!editing.builtin && (
                     <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
@@ -258,7 +263,7 @@ export default function AgentsPage() {
                     </Badge>
                   )}
                 </SheetTitle>
-                <SheetDescription>{editing.description || t("editorDescFallback")}</SheetDescription>
+                <SheetDescription>{lx(editing.description) || t("editorDescFallback")}</SheetDescription>
               </SheetHeader>
               <AgentEditor agentKey={editing.key} onSaved={reload} />
             </>

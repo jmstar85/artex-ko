@@ -20,6 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
+import { useBuiltinText } from "@/lib/builtin-i18n";
 import type { InterceptAction, InterceptRule, JudgeConfig, LLMProfile, Tool } from "@/lib/types";
 
 // ---- tool scope ----
@@ -108,6 +109,7 @@ const defaultJudge = (): JudgeConfig => ({
 
 function JudgeCard() {
   const t = useTranslations("interceptPage");
+  const lx = useBuiltinText();
   const [cfg, setCfg] = React.useState<JudgeConfig>(defaultJudge());
   const [profiles, setProfiles] = React.useState<LLMProfile[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -117,14 +119,14 @@ function JudgeCard() {
     setLoading(true);
     try {
       const [j, ps] = await Promise.all([api.interceptGetJudgeConfig(), api.llmProfiles()]);
-      setCfg(j);
+      setCfg({ ...j, prompt: lx(j.prompt) });
       setProfiles(ps);
     } catch (e) {
       toast.error(t("judge.loadConfigFailed", { error: (e as Error).message }));
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, lx]);
 
   React.useEffect(() => {
     void load();
@@ -317,6 +319,7 @@ function JudgeCard() {
 
 export default function InterceptPage() {
   const t = useTranslations("interceptPage");
+  const lx = useBuiltinText();
   const [rules, setRules] = React.useState<InterceptRule[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [open, setOpen] = React.useState(false);
@@ -395,14 +398,14 @@ export default function InterceptPage() {
   function openEdit(rule: InterceptRule) {
     setEditing(rule);
     setForm({
-      name: rule.name,
+      name: lx(rule.name),
       enabled: rule.enabled,
       priority: rule.priority,
       match_target: rule.match_target,
       match_type: rule.match_type,
       pattern: rule.pattern,
       action: rule.action,
-      message: rule.message,
+      message: lx(rule.message),
       timeout_enabled: rule.timeout_enabled,
       timeout_seconds: rule.timeout_seconds,
       timeout_action: rule.timeout_action,
@@ -622,7 +625,7 @@ export default function InterceptPage() {
                         <TableCell>
                           <span className="font-mono text-xs tabular-nums">{rule.priority}</span>
                         </TableCell>
-                        <TableCell className="font-medium text-sm">{rule.name}</TableCell>
+                        <TableCell className="font-medium text-sm">{lx(rule.name)}</TableCell>
                         <TableCell>
                           <span className="text-xs text-muted-foreground">
                             {rule.match_target === "tool_name" ? t("target.tool_name") : t("target.tool_input")}
@@ -876,7 +879,7 @@ export default function InterceptPage() {
                             )}
                           </div>
                           {tool.description && (
-                            <p className="text-[11px] text-muted-foreground line-clamp-1">{tool.description}</p>
+                            <p className="text-[11px] text-muted-foreground line-clamp-1">{lx(tool.description)}</p>
                           )}
                         </label>
                       </div>

@@ -6,6 +6,7 @@ import { type Locale, resolveLocale } from "./config";
 // context 모듈로 끌어들이지 않게 한다(로컬에만 존재하는 zh.sources.json 제외).
 const loaders: Record<Locale, () => Promise<{ default: Record<string, unknown> }>> = {
   ko: () => import("../../messages/ko.json"),
+  en: () => import("../../messages/en.json"),
   zh: () => import("../../messages/zh.json"),
 };
 

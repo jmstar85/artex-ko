@@ -9,6 +9,7 @@ import { ArchiveIcon, ArrowLeftIcon, BrainIcon, CheckIcon, CircleAlertIcon, Paus
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { StatusBadge } from "@/components/status-badge";
 import { TaskLLMProfileChain } from "@/components/task-llm-profile-chain";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -396,6 +397,7 @@ function TaskDetailInner() {
             {controlIcon}
             {controlLabel}
           </Button>
+          <LanguageSwitcher />
         </div>
         <p className="truncate text-xs text-muted-foreground">{task.goal}</p>
         {/* Tabs */}

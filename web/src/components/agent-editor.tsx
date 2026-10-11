@@ -36,6 +36,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
+import { useBuiltinText } from "@/lib/builtin-i18n";
 import type {
   Agent,
   AgentDetail,
@@ -58,6 +59,7 @@ const TRAFFIC_TOOL_KEYS = new Set(["traffic_search", "traffic_get"]);
 // Tools. Config + prompt save as before; visibility + tool bindings toggle live.
 export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?: () => void }) {
   const tr = useTranslations("agentEditor");
+  const lx = useBuiltinText();
   const [detail, setDetail] = React.useState<AgentDetail | null>(null);
   const [versions, setVersions] = React.useState<PromptVersion[]>([]);
   const [variables, setVariables] = React.useState<PromptVar[]>([]);
@@ -126,8 +128,10 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
       .getAgent(agentKey)
       .then((d) => {
         setDetail(d);
-        setPrompt(d.prompt ?? "");
-        setVariables(d.variables ?? []);
+        setPrompt(lx(d.prompt));
+        setVariables(
+          (d.variables ?? []).map((v) => ({ ...v, description: lx(v.description), example: lx(v.example) })),
+        );
         setVersions(d.versions ?? []);
         setMcpVisible(d.visibility?.mcp ?? []);
         setSkillVisible(d.visibility?.skill ?? []);
@@ -138,18 +142,18 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
         setWebSearch(!!d.agent?.web_search);
         setInteractiveShell(!!d.agent?.interactive_shell);
         setWrapup(d.wrapup_prompt ?? "");
-        setWrapupDefault(d.wrapup_default ?? "");
+        setWrapupDefault(lx(d.wrapup_default));
         setWrapupTurns(String(d.wrapup_max_turns ?? 0));
         setWrapupTurnsDefault(d.wrapup_max_turns_default ?? 5);
         setTtSupported(!!d.task_timeout_wrapup_supported);
         setTtWrapup(d.task_timeout_wrapup_prompt ?? "");
-        setTtWrapupDefault(d.task_timeout_wrapup_default ?? "");
+        setTtWrapupDefault(lx(d.task_timeout_wrapup_default));
         setTtTurns(String(d.task_timeout_wrapup_max_turns ?? 0));
         setTtTurnsDefault(d.task_timeout_wrapup_max_turns_default ?? 5);
       })
       .catch(() => setDetail(null))
       .finally(() => setLoaded(true));
-  }, [agentKey]);
+  }, [agentKey, lx]);
   React.useEffect(() => {
     reload();
   }, [reload]);
@@ -552,7 +556,7 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
                 </DialogDescription>
               </DialogHeader>
               <pre className="bg-muted max-h-[55vh] overflow-auto whitespace-pre-wrap rounded-md p-3 font-mono text-xs">
-                {viewVer?.template_text || tr("version.empty")}
+                {lx(viewVer?.template_text) || tr("version.empty")}
               </pre>
               <div className="flex gap-2 justify-end">
                 {viewVer && viewVer.version !== versions[0]?.version && (
@@ -573,7 +577,7 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
                   size="sm"
                   onClick={() => {
                     if (viewVer) {
-                      setPrompt(viewVer.template_text);
+                      setPrompt(lx(viewVer.template_text));
                       setViewVer(null);
                       toast.success(tr("toast.loadedToEditor", { version: viewVer.version }));
                     }
@@ -608,7 +612,7 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
                   </span>
                 </DialogDescription>
               </DialogHeader>
-              <DiffView oldText={diffVer?.template_text ?? ""} newText={versions[0]?.template_text ?? ""} />
+              <DiffView oldText={lx(diffVer?.template_text)} newText={lx(versions[0]?.template_text)} />
             </DialogContent>
           </Dialog>
         </div>
@@ -794,7 +798,7 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
                 ) : (
                   t.description && (
                     <span className="text-muted-foreground ml-auto line-clamp-1 max-w-[55%] text-xs">
-                      {t.description}
+                      {lx(t.description)}
                     </span>
                   )
                 )}
@@ -874,6 +878,7 @@ function DiffView({ oldText, newText }: { oldText: string; newText: string }) {
 // in parallel with the base user message + auto context appended by the backend.
 function AgentTriggersTab({ agentKey, agent }: { agentKey: string; agent?: Agent }) {
   const tr = useTranslations("agentEditor");
+  const lx = useBuiltinText();
   const [triggers, setTriggers] = React.useState<AgentTrigger[]>([]);
   const [tools, setTools] = React.useState<Tool[]>([]);
   // 触发后处理策略(每 agent);初值来自 agent detail,改动即保存。
@@ -1258,7 +1263,7 @@ function AgentTriggersTab({ agentKey, agent }: { agentKey: string; agent?: Agent
                       <span className="min-w-0">
                         <span className="font-medium">{tool.key}</span>
                         {tool.description && (
-                          <span className="text-muted-foreground line-clamp-1"> {tool.description}</span>
+                          <span className="text-muted-foreground line-clamp-1"> {lx(tool.description)}</span>
                         )}
                       </span>
                     </label>

@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
+import { useBuiltinText } from "@/lib/builtin-i18n";
 import type { AssetInterceptKind, AssetInterceptRule } from "@/lib/types";
 
 // ---- kind 메타 정보 ----
@@ -93,6 +94,7 @@ function frontValidate(form: RuleForm): "contentRequired" | "cidrInvalid" | null
 export default function AssetInterceptPage() {
   const t = useTranslations("assetInterceptPage");
   const tr = useTranslations("assetInterceptRules");
+  const lx = useBuiltinText();
   const [rules, setRules] = React.useState<AssetInterceptRule[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [open, setOpen] = React.useState(false);
@@ -126,7 +128,7 @@ export default function AssetInterceptPage() {
 
   function openEdit(rule: AssetInterceptRule) {
     setEditing(rule);
-    setForm({ enabled: rule.enabled, kind: rule.kind, pattern: rule.pattern, note: rule.note });
+    setForm({ enabled: rule.enabled, kind: rule.kind, pattern: rule.pattern, note: lx(rule.note) });
     setOpen(true);
   }
 
@@ -238,7 +240,7 @@ export default function AssetInterceptPage() {
                             {t("builtin")}
                           </Badge>
                         )}
-                        <span className="truncate">{rule.note}</span>
+                        <span className="truncate">{lx(rule.note)}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-center">

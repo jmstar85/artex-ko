@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 
 import { useTranslations } from "next-intl";
 
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -76,6 +77,7 @@ export function MainContent({ children }: { children: ReactNode }) {
             <UpdateBadge />
             <LayoutControls />
             <ThemeSwitcher />
+            <LanguageSwitcher />
             <AccountSwitcher users={[currentUser]} />
           </div>
         </div>
