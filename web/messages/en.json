@@ -26,7 +26,11 @@
       "newPasswordPlaceholder": "At least 8 characters",
       "submit": "Set password and sign in",
       "submitting": "Saving…",
-      "title": "Initialize Password"
+      "title": "Initialize Password",
+      "setupToken": "Setup token",
+      "setupTokenPlaceholder": "32-character token printed on the [auth] line of the server console log",
+      "setupTokenHelp": "To stop anyone else from claiming the admin account first, enter the setup token that is printed only in the terminal where the server was started (for Docker: docker compose logs artex).",
+      "errorTokenEmpty": "Please enter the setup token"
     },
     "terms": {
       "a1Body": "This software (ARTEX) is open-source software distributed under the GNU Affero General Public License v3.0 (AGPL-3.0). Under this license you may freely use, copy, modify, and distribute the software. However, all derivative works (including online services provided to third parties over a network) must likewise be released under AGPL-3.0, and the complete corresponding source code must be made available to users. The full terms of AGPL-3.0 are governed by the LICENSE file distributed with this software.",
