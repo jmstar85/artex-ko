@@ -38,6 +38,7 @@ import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
+import { useBuiltinText } from "@/lib/builtin-i18n";
 import type { Agent, MCPServer, MissingSkill, SkillCall, SkillItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -302,6 +303,7 @@ function SkillsOverview({
 // ── Page ──────────────────────────────────────────────────────────────────
 export default function SkillsPage() {
   const t = useTranslations("skillsPage");
+  const lx = useBuiltinText();
   const [skills, setSkills] = React.useState<SkillItem[]>([]);
   const [agents, setAgents] = React.useState<Agent[]>([]);
   const [selected, setSelected] = React.useState<Selected | null>(null);
@@ -1015,7 +1017,7 @@ export default function SkillsPage() {
               <div>
                 <h2 className="font-mono text-base font-semibold">{selectedSkill.name}</h2>
                 {selectedSkill.description && (
-                  <p className="mt-1 text-sm text-muted-foreground">{selectedSkill.description}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{lx(selectedSkill.description)}</p>
                 )}
                 <div className="mt-2 flex flex-wrap gap-2">
                   {selectedSkill.license && (
@@ -1148,7 +1150,12 @@ export default function SkillsPage() {
                 <span className="font-medium text-foreground">{selected.skill}</span>
                 <span>/</span>
                 <span className="font-mono">{selected.path}</span>
-                <Button size="sm" className="ml-auto" onClick={saveFile} disabled={!dirty || saving}>
+                <Button
+                  size="sm"
+                  className="ml-auto"
+                  onClick={saveFile}
+                  disabled={!dirty || saving || lx(fileContent) !== fileContent}
+                >
                   {saving ? t("saving") : t("save")}
                 </Button>
               </div>
@@ -1157,8 +1164,10 @@ export default function SkillsPage() {
               ) : (
                 <Textarea
                   className="flex-1 resize-none font-mono text-xs"
-                  value={fileContent}
+                  value={lx(fileContent)}
+                  readOnly={lx(fileContent) !== fileContent}
                   onChange={(e) => {
+                    if (lx(fileContent) !== fileContent) return;
                     setFileContent(e.target.value);
                     setDirty(true);
                   }}
