@@ -1131,9 +1131,9 @@ export default function SkillsPage() {
                         <label key={a.key} className="flex cursor-pointer items-center gap-2 text-sm">
                           <Checkbox
                             checked={(visibility[selectedSkill.name] ?? []).includes(a.id)}
-                            onCheckedChange={() => toggleVisibility(selectedSkill.name, a.id, a.name)}
+                            onCheckedChange={() => toggleVisibility(selectedSkill.name, a.id, lx(a.name))}
                           />
-                          {a.name}
+                          {lx(a.name)}
                         </label>
                       ))}
                       {agents.length === 0 && <span className="text-xs text-muted-foreground">{t("noAgents")}</span>}
@@ -1341,7 +1341,7 @@ export default function SkillsPage() {
                           setNewVisibility((cur) => (on ? [...cur, a.id] : cur.filter((id) => id !== a.id)))
                         }
                       />
-                      {a.name}
+                      {lx(a.name)}
                     </label>
                   ))}
                 </div>
