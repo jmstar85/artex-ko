@@ -56,6 +56,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { useSideQuestions } from "@/hooks/use-side-questions";
 import { mergeActivities } from "@/lib/activity-merge";
 import { api } from "@/lib/api";
+import { useBuiltinText } from "@/lib/builtin-i18n";
 import { shouldSubmitOnKey, useChatSendMode } from "@/lib/chat-send-mode";
 import { getLocalStorageValue, setLocalStorageValue } from "@/lib/local-storage.client";
 import { isBtwCommand } from "@/lib/side-questions";
@@ -1083,6 +1084,7 @@ function AgentGroupHeader({
 
 export default function ChatPage() {
   const t = useTranslations("chat");
+  const lx = useBuiltinText();
   const [agents, setAgents] = React.useState<Agent[]>([]);
   const [profiles, setProfiles] = React.useState<LLMProfile[]>([]);
   const [convs, setConvs] = React.useState<Conversation[]>([]);
@@ -1220,7 +1222,15 @@ export default function ChatPage() {
   }, [selectedId]);
 
   const selected = React.useMemo(() => convs.find((c) => c.id === selectedId) ?? null, [convs, selectedId]);
-  const agentByKey = React.useMemo(() => new Map(agents.map((agent) => [agent.key, agent])), [agents]);
+  const localizedAgents = React.useMemo(
+    () =>
+      agents.map((a) => ({ ...a, name: lx(a.name), description: a.description ? lx(a.description) : a.description })),
+    [agents, lx],
+  );
+  const agentByKey = React.useMemo(
+    () => new Map(localizedAgents.map((agent) => [agent.key, agent])),
+    [localizedAgents],
+  );
   const filteredConversations = React.useMemo(
     () => (agentFilter === null ? convs : convs.filter((conversation) => conversation.agent_key === agentFilter)),
     [convs, agentFilter],
@@ -1246,7 +1256,10 @@ export default function ChatPage() {
   // conversation agents: custom agents + conversational built-ins (role=assistant,
   // e.g. Auto / 침투 테스트). The orchestration built-ins (goals/planner/mainagent/worker)
   // are task-specific and stay hidden from the chat page.
-  const chatAgents = React.useMemo(() => agents.filter((a) => !a.builtin || a.role === "assistant"), [agents]);
+  const chatAgents = React.useMemo(
+    () => localizedAgents.filter((a) => !a.builtin || a.role === "assistant"),
+    [localizedAgents],
+  );
   const agentFilterOptions = React.useMemo(() => {
     const counts = new Map<string, number>();
     for (const conversation of convs) {
@@ -1560,7 +1573,7 @@ export default function ChatPage() {
             <ChatView
               key={selected.id}
               conv={selected}
-              agents={agents}
+              agents={localizedAgents}
               profiles={profiles}
               initial={pendingByConv[selected.id]}
               onTitleMaybeChanged={reloadConvs}
