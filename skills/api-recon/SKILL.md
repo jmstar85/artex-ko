@@ -278,7 +278,7 @@ coverage는 매 라운드마다 `__API_RECON_LOG__`, `__API_RECON_DETAIL__`, `__
 
 ## Phase 3 — 런타임
 
-게이트 B를 통과한 상태여야 합니다; [경계와 금지사항](#경계와-금지사항agent-필독--위반-시-범위-이탈) · 자격 증명 없는 mock 전략을 준수합니다.
+게이트 B를 통과한 상태여야 합니다; [경계와 금지사항](#경계와-금지사항-agent-필독--위반-시-범위-이탈) · 자격 증명 없는 mock 전략을 준수합니다.
 
 `config.json`에서 `"runtimeMode": "depth" | "coverage" | "both"`를 설정합니다 (템플릿은 reference 참조).
 
