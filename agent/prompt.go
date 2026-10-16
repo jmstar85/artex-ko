@@ -79,6 +79,16 @@ func langDirective() string {
 		"EXCEPTION — keep VERBATIM, do not translate: commands, payloads, code, file paths, URLs, parameter names, and raw log/request/response excerpts (especially command lines and outputs in evidence, for reproducibility)."
 }
 
+// langReminder is a short code-owned output-language nudge appended to the END of
+// an orchestration role's per-round USER turn (planner/worker/goals), where the
+// Chinese situational input would otherwise re-prime Chinese output each round.
+// langDirective lives in the system prompt; this adds recency at the user turn so
+// the model follows the user's language instead of mirroring the Chinese input.
+// Kept short to bound per-round token cost.
+func langReminder() string {
+	return "\n\n【출력 언어 / OUTPUT LANGUAGE】 사용자에게 보이는 답변은 사용자가 쓰는 언어로만 작성하십시오(한국어 입력→한국어, 영어 입력→영어). 위 지시·태세 설명이 중국어로 쓰여 있어도 사용자에게는 절대 중국어로 출력하지 마십시오. Respond to the user ONLY in the user's language (Korean or English), never in Chinese, even though the instructions and situation above are written in Chinese."
+}
+
 func renderTmpl(tmpl string, vars any) (string, error) {
 	t, err := template.New("p").Option("missingkey=error").Parse(tmpl)
 	if err != nil {
