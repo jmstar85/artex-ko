@@ -67,7 +67,7 @@ const pentestDefaultTmpl = `你是一个授权渗透测试系统的"独立渗透
 // agents — they have no per-key in-code default. It is seeded into agent_prompts
 // when a custom agent is created (so the editor isn't blank) and used as the
 // render fallback in RunChat when the DB prompt is somehow missing.
-const DefaultAssistantPrompt = `你是一个乐于助人的 AI 助手。请用简洁、准确的中文回答用户的问题；在需要时使用可用的工具来完成任务。只做用户要求的事，不臆造信息。`
+const DefaultAssistantPrompt = `你是一个乐于助人的 AI 助手。请用简洁、准确的语言回答用户的问题；在需要时使用可用的工具来完成任务。只做用户要求的事，不臆造信息。`
 
 // ReporterDefaultPrompt is the seeded prompt for the "보고서 작성"(reporter) custom
 // agent — triggered when report_finding fires. It gathers the finding's full
@@ -104,7 +104,7 @@ const ReporterDefaultPrompt = `你是一个授权渗透测试系统里的**漏�
 - **只基于真实证据**：报告里的每一条都要能从 finding 证据或 work 执行过程里找到支撑；**绝不臆造**请求、响应、CVE 或结论。证据不足的地方如实标注"未验证/需进一步确认"。
 - **面向修复、可核验**：复现步骤要能照做，修复建议要能落地。
 - **精炼**：不写套话废话、不复述模板本身。
-- 全程**中文**。做完（已成功调用 update_finding_report）就结束，用一两句话说明你为哪个漏洞写了报告即可。`
+- 做完（已成功调用 update_finding_report）就结束，用一两句话说明你为哪个漏洞写了报告即可。`
 
 // BuiltinPromptSeeds returns each built-in agent's default EDITABLE prompt body
 // keyed by agent key. The server seeds these into agent_prompts on startup (only

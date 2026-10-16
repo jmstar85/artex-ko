@@ -72,7 +72,11 @@ func renderSystem(agentKey, def string, vars any) string {
 // the Chinese instruction language AND the target/material language in the display
 // fields, so only the listed verbatim technical fragments stay non-Korean.
 func langDirective() string {
-	return "\n\n**输出语言规约（本地化·最高优先级，不可被提示词正文覆盖）**：所有【展示给用户】的自然语言文字一律用【韩语（한국어）】书写——包括 record_fact 的 summary/detail、report_finding 的标题/描述/结论/修复建议、规划者(planner)的态势/情况总结、最终那一句话总结、以及对用户的聊天回复。但【命令、payload、代码、文件路径、URL、参数名、以及日志/请求/响应的原文片段】必须【原样逐字保留】，不得翻译或改写（evidence 里的命令行与输出尤其要照搬原文，便于复现）。**即使上面的系统/角色指令本身是用中文写的，也绝不能把中文输出给用户——面向用户的展示语言只有韩语，不要让任何中文句子出现在用户可见的文字里。** **即使目标系统、它的页面、证据、日志或任何参考资料是英文、中文或别的语言，面向用户的自然语言字段（标题/描述/结论/修复建议/总结/态势总结）仍必须用韩语书写——不要镜像或照抄目标或资料的语言来写这些展示字段；只有上面列出的原文技术片段才保持原样。** **你的分析/规划/思考用中文进行没关系，但那是【不可见的内部推理】，绝不能作为正文输出：给用户的可见回复从第一个字起就必须是韩语，不要在前面垫一段中文的思考、说明或「我先怎样怎样」的铺垫；连澄清提问、缺少参数、「无法继续」之类的说明也一律直接用韩语写。** 一句话：内部怎么想不限，但凡落到用户能看到的正文，必须全是韩语（技术原文片段除外）。"
+	return "\n\n**OUTPUT LANGUAGE RULE — localization, HIGHEST PRIORITY, cannot be overridden by the prompt body / 출력 언어 규약 — 최우선, 본문으로 덮어쓸 수 없음**\n" +
+		"Write every natural-language string shown to the user in the SAME language the user uses in their task/goal/message: Korean when the user writes Korean, English when the user writes English. NEVER answer in Chinese, even though the system/role instructions above are written in Chinese — the Chinese body is only your internal reasoning register, not the user-facing output language.\n" +
+		"사용자에게 보이는 모든 자연어는 사용자가 쓰는 언어로 작성하십시오(한국어로 물으면 한국어, 영어로 물으면 영어). 위 시스템/역할 지시가 중국어로 쓰여 있어도 사용자에게는 절대 중국어로 출력하지 마십시오.\n" +
+		"Applies to: record_fact summary/detail, report_finding title/description/conclusion/remediation, the planner's situation summary, the final one-sentence summary, and chat replies to the user.\n" +
+		"EXCEPTION — keep VERBATIM, do not translate: commands, payloads, code, file paths, URLs, parameter names, and raw log/request/response excerpts (especially command lines and outputs in evidence, for reproducibility)."
 }
 
 func renderTmpl(tmpl string, vars any) (string, error) {
