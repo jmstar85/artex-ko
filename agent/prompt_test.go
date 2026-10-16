@@ -82,32 +82,28 @@ func TestRenderSystemOverrideAndFallback(t *testing.T) {
 }
 
 // TestLangDirectiveAppendedToUserFacingRoles pins the artex-ko localization tail:
-// every user-facing role's system prompt must end with the code-owned Korean
-// output-language directive, and a DB-edited body must NOT be able to drop it.
+// every user-facing role's system prompt must end with the code-owned adaptive
+// KO/EN output-language directive, and a DB-edited body must NOT be able to drop it.
 func TestLangDirectiveAppendedToUserFacingRoles(t *testing.T) {
 	t.Cleanup(func() { PromptOverride = nil })
 
-	// The directive forces Korean OUTPUT and preserves raw technical strings; both
-	// signals must be present. 한국어 marker + verbatim-preservation clause.
+	// The directive makes OUTPUT follow the user's language (Korean or English),
+	// forbids Chinese, and preserves raw technical strings; all signals must be
+	// present. KO + EN markers + no-Chinese clause + verbatim clause.
 	dir := langDirective()
-	if !strings.Contains(dir, "한국어") {
-		t.Fatalf("langDirective must force Korean output, got %q", dir)
+	if !strings.Contains(dir, "한국어") || !strings.Contains(dir, "English") {
+		t.Fatalf("langDirective must name both Korean and English as output languages, got %q", dir)
 	}
-	if !strings.Contains(dir, "payload") || !strings.Contains(dir, "原样逐字保留") {
+	if !strings.Contains(dir, "payload") || !strings.Contains(dir, "VERBATIM") {
 		t.Fatalf("langDirective must keep commands/payloads verbatim, got %q", dir)
 	}
-	// L1 anti-drift hardening: the directive must (1) forbid leaking the Chinese
-	// instruction/brain language into user-facing text (planner situation-summary
-	// drift), and (2) forbid mirroring the target/material language — e.g. an
-	// English target app — in the display fields (report_finding drift). Both
-	// clauses are locked here so a future edit can't silently drop them.
-	if !strings.Contains(dir, "也绝不能把中文输出给用户") {
+	// Anti-drift: the directive must forbid leaking the Chinese instruction/brain
+	// language into user-facing text, and name the planner situation summary as a
+	// user-facing field. Locked here so a future edit can't silently drop them.
+	if !strings.Contains(dir, "절대 중국어로 출력하지 마십시오") {
 		t.Fatalf("langDirective must forbid leaking Chinese to the user, got %q", dir)
 	}
-	if !strings.Contains(dir, "不要镜像或照抄目标") {
-		t.Fatalf("langDirective must forbid mirroring the target/material language, got %q", dir)
-	}
-	if !strings.Contains(dir, "态势") {
+	if !strings.Contains(dir, "situation summary") {
 		t.Fatalf("langDirective must name the planner situation summary as user-facing, got %q", dir)
 	}
 
