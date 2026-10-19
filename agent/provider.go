@@ -448,7 +448,7 @@ func quotaAwareHTTPClient(proxy, sessionHeaderKey string, oauth *OAuthState) (*h
 // Authorization: Bearer 주입, anthropic-beta 에 oauth 플래그 추가, 그리고 요청 본문
 // system 배열 선두에 Claude Code 신원 블록 주입. 토큰 만료 시 bearer() 안에서 갱신된다.
 func (t quotaAwareTransport) applyOAuth(req *http.Request) error {
-	tok, err := t.oauth.bearer(req.Context())
+	tok, err := t.oauth.Bearer(req.Context())
 	if err != nil {
 		return err
 	}

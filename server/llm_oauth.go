@@ -64,6 +64,18 @@ func takeOAuthTicket(id string) (agent.OAuthToken, bool) {
 	return t.tok, true
 }
 
+// peekOAuthTicket 는 티켓을 소모하지 않고 토큰만 읽는다. 모델 목록 조회처럼 프로필 저장
+// 전에 토큰이 필요하지만 이후 저장(takeOAuthTicket)도 남겨야 하는 경우에 쓴다.
+func peekOAuthTicket(id string) (agent.OAuthToken, bool) {
+	oauthTicketMu.Lock()
+	defer oauthTicketMu.Unlock()
+	t, ok := oauthTickets[id]
+	if !ok || time.Now().After(t.expires) {
+		return agent.OAuthToken{}, false
+	}
+	return t.tok, true
+}
+
 // pgOAuthAnthropicStart 는 사용자가 브라우저에서 열 로그인 URL 과 PKCE verifier 를 준다.
 // verifier 는 PKCE 교환에만 쓰이는 1회용 값이라 브라우저로 돌려줘도 된다(비밀 자격증명 아님).
 func (s *Server) pgOAuthAnthropicStart(w http.ResponseWriter, r *http.Request) {

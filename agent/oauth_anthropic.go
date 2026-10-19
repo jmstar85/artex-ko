@@ -209,9 +209,9 @@ func (o *OAuthState) Token() OAuthToken {
 	return o.tok
 }
 
-// bearer 는 유효한 access token 을 돌려준다. 만료(임박)면 refresh 후 저장한다. 동시
+// Bearer 는 유효한 access token 을 돌려준다. 만료(임박)면 refresh 후 저장한다. 동시
 // 요청이 몰려도 갱신은 한 번만 일어나도록 잠금 아래에서 처리한다.
-func (o *OAuthState) bearer(ctx context.Context) (string, error) {
+func (o *OAuthState) Bearer(ctx context.Context) (string, error) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	if strings.TrimSpace(o.tok.AccessToken) == "" {

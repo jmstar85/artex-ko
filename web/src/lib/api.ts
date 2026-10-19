@@ -996,13 +996,21 @@ export const api = {
   // 全局重试策略（五层各自的次数+间隔）。全 0 = 全部走内置默认。
   llmRetryPolicy: () => get<LLMRetryPolicy>("/llm/retry-policy"),
   saveLLMRetryPolicy: (p: LLMRetryPolicy) => post<LLMRetryPolicy>("/llm/retry-policy", p),
-  fetchLLMModels: (provider: string, base_url: string, api_key: string, proxy = "", profile_id?: number) =>
+  fetchLLMModels: (
+    provider: string,
+    base_url: string,
+    api_key: string,
+    proxy = "",
+    profile_id?: number,
+    oauth_ticket?: string,
+  ) =>
     post<{ ok: boolean; error?: string; models?: string[] }>("/llm/models", {
       provider,
       base_url,
       api_key,
       proxy,
       profile_id,
+      oauth_ticket,
     }),
 
   // ---- agents ----

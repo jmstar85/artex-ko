@@ -2055,11 +2055,12 @@ func (s *Server) pgLLMPoolReset(w http.ResponseWriter, r *http.Request) {
 // the OpenAI path, it falls back to the OpenAI endpoint at the stripped root.
 func (s *Server) pgListModels(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Provider  string `json:"provider"` // "openai" | "anthropic"
-		BaseURL   string `json:"base_url"`
-		APIKey    string `json:"api_key"`
-		Proxy     string `json:"proxy"`
-		ProfileID *int64 `json:"profile_id"` // fallback: use stored key from this profile
+		Provider    string `json:"provider"` // "openai" | "anthropic"
+		BaseURL     string `json:"base_url"`
+		APIKey      string `json:"api_key"`
+		Proxy       string `json:"proxy"`
+		ProfileID   *int64 `json:"profile_id"`   // fallback: use stored key from this profile
+		OAuthTicket string `json:"oauth_ticket"` // 구독 로그인 완료 티켓(아직 저장 전 프로필용)
 	}
 	if err := decode(r, &req); err != nil {
 		writeErr(w, 400, err.Error())
@@ -2072,7 +2073,24 @@ func (s *Server) pgListModels(w http.ResponseWriter, r *http.Request) {
 			apiKey = p.APIKey
 		}
 	}
-	if apiKey == "" {
+	// 구독 OAuth 프로필/방금 로그인한 티켓은 api_key 대신 Bearer 토큰으로 모델 목록을 조회한다.
+	var oauthToken string
+	if req.OAuthTicket != "" {
+		if tok, ok := peekOAuthTicket(req.OAuthTicket); ok {
+			oauthToken = tok.AccessToken
+		}
+	} else if req.ProfileID != nil {
+		if p, err := s.m.pg.ProfileByID(*req.ProfileID); err == nil && p != nil && p.AuthMode == "oauth" {
+			var cfg agent.Config
+			s.applyProfileAuth(&cfg, p)
+			if cfg.OAuthState != nil {
+				if tok, err := cfg.OAuthState.Bearer(r.Context()); err == nil {
+					oauthToken = tok
+				}
+			}
+		}
+	}
+	if apiKey == "" && oauthToken == "" {
 		writeJSON(w, 200, map[string]any{"ok": false, "error": errMgmtNoAPIKey})
 		return
 	}
@@ -2115,6 +2133,14 @@ func (s *Server) pgListModels(w http.ResponseWriter, r *http.Request) {
 			baseURL = "https://api.anthropic.com"
 		}
 		b := strings.TrimRight(strings.TrimSuffix(baseURL, "/v1/messages"), "/")
+		if oauthToken != "" {
+			h := http.Header{}
+			h.Set("Authorization", "Bearer "+oauthToken)
+			h.Set("anthropic-version", "2023-06-01")
+			h.Set("anthropic-beta", "oauth-2025-04-20")
+			candidates = append(candidates, candidate{b + "/v1/models", h})
+			break
+		}
 		candidates = append(candidates, candidate{b + "/v1/models", anthropicHdr()})
 		// Fallback for Anthropic-compatible third parties whose model list lives on
 		// the OpenAI path: strip a trailing /anthropic and try the OpenAI endpoint.

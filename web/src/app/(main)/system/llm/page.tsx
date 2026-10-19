@@ -315,12 +315,12 @@ function ProfileSheet({
     if (!open) return;
     setName(profile?.name ?? "");
     setFormat(profile?.format === "openai" || profile?.format === "openai-responses" ? profile.format : "anthropic");
-    setModel(profile?.model ?? "");
+    setModel(profile?.model ?? "claude-sonnet-4-5-20250929");
     setBaseUrl(profile?.base_url ?? "");
     setProxy(profile?.proxy ?? "");
     setRps(String(profile?.rate_per_second ?? 0));
     setRpm(String(profile?.rate_per_minute ?? 0));
-    setCw(String(profile?.context_window_k ?? 0));
+    setCw(String(profile ? (profile.context_window_k ?? 0) : 200));
     setThinkingType(fromStore(profile?.thinking_type));
     setEffort(fromStore(profile?.reasoning_effort));
     setPriority(String(profile?.priority ?? 0));
@@ -349,7 +349,7 @@ function ProfileSheet({
     setLoadingModels(true);
     setModels([]);
     try {
-      const r = await api.fetchLLMModels(format, baseUrl, apiKey, proxy, profileId);
+      const r = await api.fetchLLMModels(format, baseUrl, apiKey, proxy, profileId, oauthTicket || undefined);
       if (r.ok && r.models && r.models.length > 0) {
         setModels(r.models);
         setModelsOpen(true);
@@ -571,43 +571,6 @@ function ProfileSheet({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="p-base-url">{t("profile.baseUrl.label")}</Label>
-            <Input
-              id="p-base-url"
-              className="font-mono"
-              placeholder="https://api.openai.com/v1"
-              value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="p-proxy">{t("profile.proxy.label")}</Label>
-            <Input
-              id="p-proxy"
-              className="font-mono"
-              placeholder="socks5://user:pass@127.0.0.1:1080 · http://127.0.0.1:8080"
-              value={proxy}
-              onChange={(e) => setProxy(e.target.value)}
-            />
-            <p className="text-muted-foreground text-xs">{t("profile.proxy.hint")}</p>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="p-session-header">{t("profile.sessionHeader.label")}</Label>
-            <Input
-              id="p-session-header"
-              className="font-mono"
-              placeholder={t("profile.sessionHeader.placeholder")}
-              value={sessionHeaderKey}
-              onChange={(e) => setSessionHeaderKey(e.target.value)}
-            />
-            <p className="text-muted-foreground text-xs">
-              {t.rich("profile.sessionHeader.hint", { b: (c) => <b>{c}</b> })}
-            </p>
-          </div>
-
-          <div className="grid gap-2">
             <Label>{t("profile.authMode.label")}</Label>
             <Select
               value={authMode}
@@ -668,6 +631,43 @@ function ProfileSheet({
               />
             </div>
           )}
+
+          <div className="grid gap-2">
+            <Label htmlFor="p-base-url">{t("profile.baseUrl.label")}</Label>
+            <Input
+              id="p-base-url"
+              className="font-mono"
+              placeholder="https://api.openai.com/v1"
+              value={baseUrl}
+              onChange={(e) => setBaseUrl(e.target.value)}
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="p-proxy">{t("profile.proxy.label")}</Label>
+            <Input
+              id="p-proxy"
+              className="font-mono"
+              placeholder="socks5://user:pass@127.0.0.1:1080 · http://127.0.0.1:8080"
+              value={proxy}
+              onChange={(e) => setProxy(e.target.value)}
+            />
+            <p className="text-muted-foreground text-xs">{t("profile.proxy.hint")}</p>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="p-session-header">{t("profile.sessionHeader.label")}</Label>
+            <Input
+              id="p-session-header"
+              className="font-mono"
+              placeholder={t("profile.sessionHeader.placeholder")}
+              value={sessionHeaderKey}
+              onChange={(e) => setSessionHeaderKey(e.target.value)}
+            />
+            <p className="text-muted-foreground text-xs">
+              {t.rich("profile.sessionHeader.hint", { b: (c) => <b>{c}</b> })}
+            </p>
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="grid gap-2">
