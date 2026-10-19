@@ -3325,6 +3325,23 @@
       "apiKey": {
         "placeholderSet": "已设置（{hint}），留空保持不变"
       },
+      "authMode": {
+        "label": "认证方式",
+        "apikey": "API 密钥",
+        "oauth": "订阅登录（Claude Pro/Max）",
+        "hint": "订阅登录通过 OAuth 使用你的 Claude Pro/Max 账户，而非 API 密钥。仅适用于 Anthropic（Claude）格式。"
+      },
+      "oauth": {
+        "label": "Claude 订阅登录",
+        "hint": "打开登录 URL，在浏览器中授权后，粘贴回调页显示的代码。",
+        "start": "生成登录 URL",
+        "opened": "已在新标签页打开登录页。授权后把代码粘贴到下方。",
+        "codePlaceholder": "粘贴授权码（code#state）",
+        "complete": "关联账户",
+        "linked": "账户已关联。保存配置后生效。",
+        "existing": "该配置已关联。仅在登录过期时才需重新关联。",
+        "needLogin": "保存前请先完成订阅登录。"
+      },
       "rps": "每秒限速",
       "rpm": "每分钟限速",
       "cw": "上下文窗口(K)",

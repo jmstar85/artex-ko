@@ -617,6 +617,10 @@ type LLMProfileDTO struct {
 	// 0=继承全局策略 | -1=关闭该层重试 | >0=次数；interval_ms: 0=用默认指数退避 |
 	// >0=改用该固定毫秒间隔。全 0 = 完全跟随全局，即历史行为。
 	Retry db.RetryOverride `json:"retry"`
+	// 인증 방식("apikey"|"oauth")과 구독 OAuth access token 만료시각(unix 초, 0=모름).
+	// 토큰 자체는 절대 내보내지 않는다(api_key 와 동일).
+	AuthMode       string `json:"auth_mode"`
+	OAuthExpiresAt int64  `json:"oauth_expires_at,omitempty"`
 }
 
 func llmProfileDTO(p *db.LLMProfile) LLMProfileDTO {
@@ -641,6 +645,8 @@ func llmProfileDTO(p *db.LLMProfile) LLMProfileDTO {
 		MaxTokensField:   p.MaxTokensField,
 		SessionHeaderKey: p.SessionHeaderKey,
 		Retry:            p.Retry,
+		AuthMode:         p.AuthMode,
+		OAuthExpiresAt:   p.OAuthExpiresAt,
 	}
 }
 

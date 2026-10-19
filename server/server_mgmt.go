@@ -1865,8 +1865,9 @@ func (s *Server) pgSaveProfile(w http.ResponseWriter, r *http.Request) {
 	// would get wrong — legacy/partial clients that never send it stay streaming.
 	var body struct {
 		db.LLMProfile
-		APIKey    string `json:"api_key"`
-		Streaming *bool  `json:"streaming"`
+		APIKey      string `json:"api_key"`
+		Streaming   *bool  `json:"streaming"`
+		OAuthTicket string `json:"oauth_ticket"`
 	}
 	if err := decode(r, &body); err != nil {
 		writeErr(w, 400, err.Error())
@@ -1888,6 +1889,16 @@ func (s *Server) pgSaveProfile(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
+	}
+	// 구독 OAuth 로그인으로 받은 토큰은 ticket 으로 서버측에 잠긐 보관돼 있다. 프로필 저장
+	// 직후 그 토큰을 이 프로필에 심는다(브라우저로 토큰을 내보내지 않기 위한 분리 경로).
+	if body.OAuthTicket != "" {
+		if tok, ok := takeOAuthTicket(body.OAuthTicket); ok {
+			if err := pg.UpdateProfileOAuth(id, tok.AccessToken, tok.RefreshToken, tok.ExpiresAt); err != nil {
+				writeErr(w, 500, "oauth 토큰 저장 실패: "+err.Error())
+				return
+			}
+		}
 	}
 	// Editing a profile rebuilds any task pinned to it on its next round. Reapply
 	// the active profile too: the global fallback and explicit task chains must

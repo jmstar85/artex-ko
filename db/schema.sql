@@ -435,6 +435,17 @@ ALTER TABLE llm_profiles ADD  CONSTRAINT llm_profiles_max_tokens_check
 -- 自定义会话头名；补旧库。默认 '' = 不发送，旧配置行为不变。
 ALTER TABLE llm_profiles ADD COLUMN IF NOT EXISTS session_header_key TEXT NOT NULL DEFAULT '';
 
+-- 구독 OAuth(Claude Pro/Max 등) 연결; 보구형. auth_mode='oauth' 이면 api_key 대신 아래
+-- 토큰으로 Bearer 인증한다. access token 은 만료되므로 refresh token 으로 자동 갱신하고
+-- 갱신값을 되쓴다. 기본 'apikey' = 기존 API 키 경로, 기존 행위 불변.
+ALTER TABLE llm_profiles ADD COLUMN IF NOT EXISTS auth_mode           TEXT   NOT NULL DEFAULT 'apikey';
+ALTER TABLE llm_profiles ADD COLUMN IF NOT EXISTS oauth_access_token  TEXT   NOT NULL DEFAULT '';
+ALTER TABLE llm_profiles ADD COLUMN IF NOT EXISTS oauth_refresh_token TEXT   NOT NULL DEFAULT '';
+ALTER TABLE llm_profiles ADD COLUMN IF NOT EXISTS oauth_expires_at    BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE llm_profiles DROP CONSTRAINT IF EXISTS llm_profiles_auth_mode_check;
+ALTER TABLE llm_profiles ADD  CONSTRAINT llm_profiles_auth_mode_check
+    CHECK (auth_mode IN ('apikey','oauth'));
+
 -- 单配置的重试覆盖（见 docs/LLM重试设计.md）。三组各自一对「次数 + 固定间隔」，
 -- 语义统一：次数 0=沿用全局默认、-1=关闭该层重试、>0=用该值；间隔 0=沿用该层的
 -- 默认指数退避、>0=改用这个固定毫秒数。全部默认 0，所以旧库/旧配置行为不变。

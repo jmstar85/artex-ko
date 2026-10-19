@@ -276,7 +276,13 @@ function ProfileSheet({
   const [streaming, setStreaming] = React.useState(true); // true=流式(默认);false=非流式
   const [maxTokens, setMaxTokens] = React.useState("0"); // 单次回复输出上限;0=不发送
   const [maxTokensField, setMaxTokensField] = React.useState(NONE); // 上限用哪个字段名;NONE=max_tokens
-  const [sessionHeaderKey, setSessionHeaderKey] = React.useState(""); // 自定义会话头名;空=不发送
+  const [sessionHeaderKey, setSessionHeaderKey] = React.useState(""); // 自定义会话头名；空=不发送
+  const [authMode, setAuthMode] = React.useState<"apikey" | "oauth">("apikey");
+  const [oauthVerifier, setOauthVerifier] = React.useState("");
+  const [oauthCode, setOauthCode] = React.useState("");
+  const [oauthTicket, setOauthTicket] = React.useState("");
+  const [oauthExpiresAt, setOauthExpiresAt] = React.useState(0);
+  const [oauthBusy, setOauthBusy] = React.useState(false);
   const [retry, setRetry] = React.useState<LLMRetryOverride>(ZERO_OVERRIDE); // 本配置的重试覆盖;全 0=跟随全局
   const [testing, setTesting] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -323,6 +329,12 @@ function ProfileSheet({
     setMaxTokens(String(profile?.max_tokens ?? 0));
     setMaxTokensField(fromStore(profile?.max_tokens_field));
     setSessionHeaderKey(profile?.session_header_key ?? "");
+    setAuthMode(profile?.auth_mode === "oauth" ? "oauth" : "apikey");
+    setOauthExpiresAt(profile?.oauth_expires_at ?? 0);
+    setOauthVerifier("");
+    setOauthCode("");
+    setOauthTicket("");
+    setOauthBusy(false);
     setRetry(profile?.retry ?? ZERO_OVERRIDE);
     setApiKey("");
     setKeyHint(profile?.api_key_hint ?? "");
@@ -383,9 +395,45 @@ function ProfileSheet({
     }
   }
 
+  async function startOAuth() {
+    if (oauthBusy) return;
+    setOauthBusy(true);
+    try {
+      const r = await api.oauthAnthropicStart();
+      setOauthVerifier(r.verifier);
+      window.open(r.auth_url, "_blank", "noopener,noreferrer");
+      toast.info(t("profile.oauth.opened"));
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setOauthBusy(false);
+    }
+  }
+
+  async function completeOAuth() {
+    if (oauthBusy || !oauthCode.trim()) return;
+    setOauthBusy(true);
+    try {
+      const r = await api.oauthAnthropicComplete(oauthCode.trim(), oauthVerifier);
+      setOauthTicket(r.ticket);
+      setOauthExpiresAt(r.expires_at || 0);
+      setOauthVerifier("");
+      setOauthCode("");
+      toast.success(t("profile.oauth.linked"));
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setOauthBusy(false);
+    }
+  }
+
   async function save() {
     if (!name.trim() || !model.trim()) {
       toast.error(t("profile.toast.nameModelRequired"));
+      return;
+    }
+    if (authMode === "oauth" && !oauthTicket && profile?.auth_mode !== "oauth") {
+      toast.error(t("profile.oauth.needLogin"));
       return;
     }
     if (saving) return;
@@ -413,6 +461,8 @@ function ProfileSheet({
         max_tokens_field: format === "openai" ? toStore(maxTokensField) : "",
         session_header_key: sessionHeaderKey.trim(),
         retry,
+        auth_mode: authMode,
+        oauth_ticket: oauthTicket || undefined,
       });
       if (isNew) toast.success(t("profile.toast.created", { name: name.trim() }));
       else toast.success(profile?.is_default ? t("profile.toast.savedActive") : t("profile.toast.saved"));
@@ -456,7 +506,11 @@ function ProfileSheet({
             </div>
             <div className="grid gap-2">
               <Label>{t("profile.format.label")}</Label>
-              <Select value={format} onValueChange={(v) => setFormat(v as "anthropic" | "openai" | "openai-responses")}>
+              <Select
+                value={format}
+                onValueChange={(v) => setFormat(v as "anthropic" | "openai" | "openai-responses")}
+                disabled={authMode === "oauth"}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder={t("profile.format.placeholder")} />
                 </SelectTrigger>
@@ -554,15 +608,66 @@ function ProfileSheet({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="p-api-key">API Key</Label>
-            <Input
-              id="p-api-key"
-              type="password"
-              placeholder={keyHint ? t("profile.apiKey.placeholderSet", { hint: keyHint }) : "sk-…"}
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-            />
+            <Label>{t("profile.authMode.label")}</Label>
+            <Select
+              value={authMode}
+              onValueChange={(v) => {
+                const m = v as "apikey" | "oauth";
+                setAuthMode(m);
+                if (m === "oauth") setFormat("anthropic");
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="apikey">{t("profile.authMode.apikey")}</SelectItem>
+                <SelectItem value="oauth">{t("profile.authMode.oauth")}</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-muted-foreground text-xs">{t("profile.authMode.hint")}</p>
           </div>
+
+          {authMode === "oauth" ? (
+            <div className="grid gap-2 rounded-lg border p-3">
+              <Label>{t("profile.oauth.label")}</Label>
+              <p className="text-muted-foreground text-xs">{t("profile.oauth.hint")}</p>
+              {oauthTicket ? (
+                <p className="text-xs text-emerald-600">{t("profile.oauth.linked")}</p>
+              ) : oauthExpiresAt > 0 ? (
+                <p className="text-muted-foreground text-xs">{t("profile.oauth.existing")}</p>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" size="sm" disabled={oauthBusy} onClick={startOAuth}>
+                  {t("profile.oauth.start")}
+                </Button>
+              </div>
+              {oauthVerifier && (
+                <div className="grid gap-2">
+                  <Input
+                    value={oauthCode}
+                    onChange={(e) => setOauthCode(e.target.value)}
+                    placeholder={t("profile.oauth.codePlaceholder")}
+                    className="font-mono"
+                  />
+                  <Button type="button" size="sm" disabled={oauthBusy || !oauthCode.trim()} onClick={completeOAuth}>
+                    {t("profile.oauth.complete")}
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              <Label htmlFor="p-api-key">API Key</Label>
+              <Input
+                id="p-api-key"
+                type="password"
+                placeholder={keyHint ? t("profile.apiKey.placeholderSet", { hint: keyHint }) : "sk-…"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+            </div>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="grid gap-2">

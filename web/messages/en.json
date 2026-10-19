@@ -3325,6 +3325,23 @@
       "apiKey": {
         "placeholderSet": "Set ({hint}); leave empty to keep"
       },
+      "authMode": {
+        "label": "Authentication",
+        "apikey": "API key",
+        "oauth": "Subscription login (Claude Pro/Max)",
+        "hint": "Subscription login uses your Claude Pro/Max account via OAuth instead of an API key. Anthropic (Claude) format only."
+      },
+      "oauth": {
+        "label": "Claude subscription login",
+        "hint": "Open the login URL, approve in your browser, then paste the code shown on the callback page.",
+        "start": "Generate login URL",
+        "opened": "Opened the login page in a new tab. Approve, then paste the code below.",
+        "codePlaceholder": "Paste the authorization code (code#state)",
+        "complete": "Link account",
+        "linked": "Account linked. Save the profile to store it.",
+        "existing": "This profile is already linked. Re-link only if the login expired.",
+        "needLogin": "Finish the subscription login before saving."
+      },
       "rps": "Rate limit per second",
       "rpm": "Rate limit per minute",
       "cw": "Context window (K)",

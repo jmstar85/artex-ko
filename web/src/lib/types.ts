@@ -1056,6 +1056,10 @@ export interface LLMProfile {
   session_header_key?: string;
   // 本配置对重试的覆盖（建连/空响应/同 provider 安全窗口）。留空/全 0 = 跟随全局策略。
   retry?: LLMRetryOverride;
+  // 인증 방식: "apikey"(기본) | "oauth"(Claude 구독 로그인).
+  auth_mode?: string;
+  // 구독 OAuth access token 만료시각(unix 초). 토큰 값 자체는 내려오지 않는다.
+  oauth_expires_at?: number;
 }
 
 // ---- LLM 重试策略 ----

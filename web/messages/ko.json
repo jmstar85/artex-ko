@@ -3325,6 +3325,23 @@
       "apiKey": {
         "placeholderSet": "설정됨({hint}), 비우면 그대로 유지"
       },
+      "authMode": {
+        "label": "인증 방식",
+        "apikey": "API 키",
+        "oauth": "구독 로그인 (Claude Pro/Max)",
+        "hint": "구독 로그인은 API 키 대신 Claude Pro/Max 계정을 OAuth로 연결합니다. Anthropic(Claude) 형식에서만 됩니다."
+      },
+      "oauth": {
+        "label": "Claude 구독 로그인",
+        "hint": "로그인 URL을 열어 브라우저에서 승인한 뒤, 콜백 화면에 표시된 코드를 붙여넣으세요.",
+        "start": "로그인 URL 생성",
+        "opened": "새 탭에 로그인 화면을 열었습니다. 승인 후 아래에 코드를 붙여넣으세요.",
+        "codePlaceholder": "인가 코드 붙여넣기 (code#state)",
+        "complete": "계정 연결",
+        "linked": "계정이 연결됐습니다. 프로필을 저장하면 반영됩니다.",
+        "existing": "이미 연결된 프로필입니다. 로그인이 만료됐을 때만 다시 연결하세요.",
+        "needLogin": "저장 전에 구독 로그인을 먼저 완료하세요."
+      },
       "rps": "초당 속도 제한",
       "rpm": "분당 속도 제한",
       "cw": "컨텍스트 창(K)",

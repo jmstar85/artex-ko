@@ -420,7 +420,8 @@ func (s *Server) loadLLMConfig() (agent.Config, bool) {
 	cfg.MaxTokens, cfg.MaxTokensField = p.MaxTokens, p.MaxTokensField
 	cfg.SessionHeaderKey = p.SessionHeaderKey
 	s.applyProfileRetry(&cfg, p)
-	if cfg.APIKey == "" {
+	s.applyProfileAuth(&cfg, p)
+	if cfg.APIKey == "" && cfg.OAuthState == nil {
 		return cfg, false
 	}
 	s.cfgMu.Lock()
@@ -591,7 +592,8 @@ func (s *Server) loadProfileConfig(id int64) (agent.Config, bool) {
 	cfg.MaxTokens, cfg.MaxTokensField = p.MaxTokens, p.MaxTokensField
 	cfg.SessionHeaderKey = p.SessionHeaderKey
 	s.applyProfileRetry(&cfg, p)
-	if cfg.APIKey == "" {
+	s.applyProfileAuth(&cfg, p)
+	if cfg.APIKey == "" && cfg.OAuthState == nil {
 		return cfg, false
 	}
 	return cfg, true
@@ -983,6 +985,8 @@ func (s *Server) Handler() http.Handler {
 	// LLM 多 profile
 	mux.HandleFunc("GET /api/llm/profiles", s.pgListProfiles)
 	mux.HandleFunc("POST /api/llm/profiles", s.pgSaveProfile)
+	mux.HandleFunc("POST /api/llm/oauth/anthropic/start", s.pgOAuthAnthropicStart)
+	mux.HandleFunc("POST /api/llm/oauth/anthropic/complete", s.pgOAuthAnthropicComplete)
 	mux.HandleFunc("DELETE /api/llm/profiles/{id}", s.pgDeleteProfile)
 	mux.HandleFunc("POST /api/llm/profiles/active", s.pgActivateProfile)
 	mux.HandleFunc("GET /api/llm/retry-policy", s.pgGetLLMRetryPolicy)
@@ -1490,14 +1494,17 @@ func (s *Server) testLLM(w http.ResponseWriter, r *http.Request) {
 			if cfg.SessionHeaderKey == "" {
 				cfg.SessionHeaderKey = p.SessionHeaderKey
 			}
+			if p.AuthMode == "oauth" {
+				s.applyProfileAuth(&cfg, p)
+			}
 		}
 	}
-	if cfg.APIKey == "" {
+	if cfg.APIKey == "" && cfg.OAuthState == nil {
 		s.cfgMu.Lock()
 		cfg.APIKey = s.llmCfg.APIKey
 		s.cfgMu.Unlock()
 	}
-	if cfg.APIKey == "" {
+	if cfg.APIKey == "" && cfg.OAuthState == nil {
 		writeJSON(w, 200, map[string]any{"ok": false, "error": errLLMTestNoAPIKey})
 		return
 	}

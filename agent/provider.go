@@ -10,6 +10,7 @@ package agent
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -77,6 +78,12 @@ type Config struct {
 	// Retry 是该配置解析后的重试参数(profile 覆盖 → 全局策略 → 内置默认,由
 	// server 侧解析)。三层的含义见 RetryConfig;零值 = 完全沿用内置默认。
 	Retry RetryConfig
+	// AuthMode 는 인증 방식: ""/"apikey" = API 키(APIKey 사용), "oauth" = 구독 OAuth.
+	AuthMode string
+	// OAuthState 는 구독 OAuth(anthropic 전용) 토큰 매니저. 비-nil 이면 트랜스포트가
+	// x-api-key 를 Bearer 로 교체하고 Claude Code 신원 블록을 주입한다. 포인터라 Config
+	// 의 == 비교(값 동등성)를 깨지 않는다(apikey 모드는 nil).
+	OAuthState *OAuthState
 }
 
 // RetryConfig 是随一个 LLM 配置走的重试参数。每层的「次数」统一语义:
@@ -254,14 +261,20 @@ func (c Config) Provider() string {
 // limiter lives on the single provider instance — so planner + all workers +
 // main agent (which share this provider) are bounded by one shared rate limit.
 func (c Config) NewProvider() (llm.Provider, error) {
-	client, err := quotaAwareHTTPClient(c.Proxy, c.SessionHeaderKey)
+	client, err := quotaAwareHTTPClient(c.Proxy, c.SessionHeaderKey, c.OAuthState)
 	if err != nil {
 		return nil, err
+	}
+	// 구독 OAuth 모드는 API 키가 없다. norma 가 빈 키를 거부할 수 있어 플레이스홀더를
+	// 넘기되, 트랜스포트가 x-api-key 를 지우고 Bearer 로 교체하므로 실제로는 쓰이지 않는다.
+	apiKey := c.APIKey
+	if c.OAuthState != nil && strings.TrimSpace(apiKey) == "" {
+		apiKey = "oauth"
 	}
 	lc := llm.Config{
 		Format:     c.Format,
 		BaseURL:    c.BaseURL,
-		APIKey:     c.APIKey,
+		APIKey:     apiKey,
 		Model:      c.Model,
 		HTTPClient: client,
 	}
@@ -333,9 +346,21 @@ type quotaAwareTransport struct {
 	// carries; its value is the session id read from the request context. Empty
 	// disables it. See Config.SessionHeaderKey.
 	sessionHeaderKey string
+	// oauth, 비-nil 이면 구독 OAuth(anthropic) 주입을 켠다: x-api-key 제거 → Bearer,
+	// anthropic-beta 에 oauth 플래그 추가, 요청 본문 system 선두에 Claude Code 신원 블록
+	// 주입. nil = API 키 모드(기존 동작 그대로).
+	oauth *OAuthState
 }
 
 func (t quotaAwareTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// 구독 OAuth 주입: norma 가 세팅한 x-api-key 를 여기서 Bearer 로 바꾸고 요청 본문에
+	// Claude Code 신원 블록을 끼운다. norma 는 재시도마다 요청을 새로 만들어 이 트랜스포트를
+	// 다시 타므로 매번(멱등하게) 적용한다.
+	if t.oauth != nil {
+		if err := t.applyOAuth(req); err != nil {
+			return nil, err
+		}
+	}
 	// Custom session-id header: name is user-configured, value is THIS run's
 	// session id (norma stashes it on the context via transcript.WithSessionID).
 	// Stable across a session's turns and distinct across sessions — exactly what
@@ -397,7 +422,7 @@ func requestBodySnapshot(req *http.Request) string {
 	return string(b)
 }
 
-func quotaAwareHTTPClient(proxy, sessionHeaderKey string) (*http.Client, error) {
+func quotaAwareHTTPClient(proxy, sessionHeaderKey string, oauth *OAuthState) (*http.Client, error) {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	proxy = strings.TrimSpace(proxy)
 	if proxy == "" {
@@ -416,7 +441,106 @@ func quotaAwareHTTPClient(proxy, sessionHeaderKey string) (*http.Client, error) 
 		}
 		transport.Proxy = http.ProxyURL(proxyURL)
 	}
-	return &http.Client{Transport: quotaAwareTransport{base: transport, sessionHeaderKey: strings.TrimSpace(sessionHeaderKey)}}, nil
+	return &http.Client{Transport: quotaAwareTransport{base: transport, sessionHeaderKey: strings.TrimSpace(sessionHeaderKey), oauth: oauth}}, nil
+}
+
+// applyOAuth 는 요청을 구독 OAuth(anthropic) 요청으로 변형한다: x-api-key 제거,
+// Authorization: Bearer 주입, anthropic-beta 에 oauth 플래그 추가, 그리고 요청 본문
+// system 배열 선두에 Claude Code 신원 블록 주입. 토큰 만료 시 bearer() 안에서 갱신된다.
+func (t quotaAwareTransport) applyOAuth(req *http.Request) error {
+	tok, err := t.oauth.bearer(req.Context())
+	if err != nil {
+		return err
+	}
+	req.Header.Del("x-api-key")
+	req.Header.Set("Authorization", "Bearer "+tok)
+	req.Header.Set("anthropic-beta", mergeBeta(req.Header.Get("anthropic-beta"), anthropicOAuthBeta))
+	return injectClaudeCodeSystem(req)
+}
+
+// mergeBeta 는 anthropic-beta 헤더에 add 플래그를 중복 없이 덧붙인다(쉼표 구분).
+func mergeBeta(existing, add string) string {
+	existing = strings.TrimSpace(existing)
+	if existing == "" {
+		return add
+	}
+	for _, p := range strings.Split(existing, ",") {
+		if strings.TrimSpace(p) == add {
+			return existing
+		}
+	}
+	return existing + "," + add
+}
+
+// injectClaudeCodeSystem 는 Anthropic 요청 본문의 system 블록 배열 선두에 Claude Code
+// 신원 블록을 끼운다(구독 OAuth 자격증명이 Claude Code 요청으로만 인가되기 때문). norma 는
+// system 을 [{type,text,cache_control?}] 로 직렬화한다. 이미 선두에 신원 문구가 있으면
+// 건드리지 않는다(멱등). JSON 이 아니거나 파싱 불가면 본문을 그대로 돌려보낸다(안전).
+func injectClaudeCodeSystem(req *http.Request) error {
+	raw, err := readRequestBody(req)
+	if err != nil || len(raw) == 0 {
+		return err
+	}
+	var m map[string]json.RawMessage
+	if json.Unmarshal(raw, &m) != nil {
+		return resetBody(req, raw)
+	}
+	var blocks []map[string]any
+	if sysRaw, ok := m["system"]; ok && len(sysRaw) > 0 {
+		if json.Unmarshal(sysRaw, &blocks) != nil {
+			var s string
+			if json.Unmarshal(sysRaw, &s) == nil {
+				blocks = []map[string]any{{"type": "text", "text": s}}
+			}
+		}
+	}
+	if len(blocks) > 0 {
+		if text, _ := blocks[0]["text"].(string); strings.HasPrefix(text, ClaudeCodeSystemIdentity) {
+			return resetBody(req, raw)
+		}
+	}
+	blocks = append([]map[string]any{{"type": "text", "text": ClaudeCodeSystemIdentity}}, blocks...)
+	nb, err := json.Marshal(blocks)
+	if err != nil {
+		return resetBody(req, raw)
+	}
+	m["system"] = nb
+	out, err := json.Marshal(m)
+	if err != nil {
+		return resetBody(req, raw)
+	}
+	return resetBody(req, out)
+}
+
+// readRequestBody 는 요청 본문을 소비하지 않고 전부 읽어 돌려준다(GetBody 우선).
+func readRequestBody(req *http.Request) ([]byte, error) {
+	if req.GetBody != nil {
+		rc, err := req.GetBody()
+		if err != nil {
+			return nil, err
+		}
+		defer rc.Close()
+		return io.ReadAll(rc)
+	}
+	if req.Body == nil {
+		return nil, nil
+	}
+	b, err := io.ReadAll(req.Body)
+	_ = req.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+	req.Body = io.NopCloser(bytes.NewReader(b))
+	return b, nil
+}
+
+// resetBody 는 요청 본문을 b 로 교체하고 길이/GetBody 도 맞춰 재시도·캡처가 같은 본문을
+// 보게 한다.
+func resetBody(req *http.Request, b []byte) error {
+	req.Body = io.NopCloser(bytes.NewReader(b))
+	req.ContentLength = int64(len(b))
+	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(b)), nil }
+	return nil
 }
 
 // logTestConnection prints the raw HTTP status code(s) and response body of a

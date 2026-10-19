@@ -980,9 +980,15 @@ export const api = {
     max_tokens_field?: string; // ""=max_tokens(默认) | "max_completion_tokens"（仅 openai 格式）
     session_header_key?: string; // 非空=每次请求带该 HTTP 头，头值=当前会话 session id；""=不发送
     retry?: LLMRetryOverride; // 本配置的重试覆盖；各项留 0 = 跟随全局重试策略
+    auth_mode?: string; // "apikey"(기본) | "oauth"(Claude 구독 로그인)
+    oauth_ticket?: string; // 구독 로그인 완료로 받은 1회용 티켓(토큰은 서버가 심음)
   }) => post<{ id: number }>("/llm/profiles", p),
   deleteLLMProfile: (id: string) => del<{ deleted: number }>(`/llm/profiles/${id}`),
   activateLLMProfile: (id: string) => post<{ ok: boolean }>("/llm/profiles/active", { id: Number(id) }),
+  // Claude 구독(OAuth) 로그인: start → 사용자 브라우저 승인 → complete 로 코드 교환(토큰은 서버 보관).
+  oauthAnthropicStart: () => post<{ auth_url: string; verifier: string }>("/llm/oauth/anthropic/start", {}),
+  oauthAnthropicComplete: (code: string, verifier: string) =>
+    post<{ ticket: string; expires_at: number }>("/llm/oauth/anthropic/complete", { code, verifier }),
   // 轮询链的实际顺序 + 各配置的熔断状态。
   llmPool: () => get<LLMPoolStatus>("/llm/pool"),
   // 清除熔断，让下一次调用立刻重试该配置；不传 id = 全部清除。
