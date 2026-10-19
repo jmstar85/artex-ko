@@ -41,6 +41,14 @@ const NONE = "none";
 const fromStore = (v?: string) => (v ? v : NONE);
 const toStore = (v: string) => (v === NONE ? "" : v);
 
+// provider(형식)별 새 프로필 기본값: 모델과 생각 강도(effort). OpenAI 계열은 GPT 모델 +
+// effort medium, Anthropic 은 Claude 모델 + effort 미설정(NONE). 새 프로필에서만 적용한다.
+const PROVIDER_DEFAULTS: Record<string, { model: string; effort: string }> = {
+  anthropic: { model: "claude-sonnet-4-5-20250929", effort: NONE },
+  openai: { model: "gpt-6.1-sol", effort: "medium" },
+  "openai-responses": { model: "gpt-6.1-sol", effort: "medium" },
+};
+
 function cooldownText(secs: number) {
   if (secs <= 0) return "";
   if (secs < 60) return `${secs}s`;
@@ -508,7 +516,14 @@ function ProfileSheet({
               <Label>{t("profile.format.label")}</Label>
               <Select
                 value={format}
-                onValueChange={(v) => setFormat(v as "anthropic" | "openai" | "openai-responses")}
+                onValueChange={(v) => {
+                  const f = v as "anthropic" | "openai" | "openai-responses";
+                  setFormat(f);
+                  if (isNew) {
+                    setModel(PROVIDER_DEFAULTS[f].model);
+                    setEffort(PROVIDER_DEFAULTS[f].effort);
+                  }
+                }}
                 disabled={authMode === "oauth"}
               >
                 <SelectTrigger>
@@ -577,7 +592,13 @@ function ProfileSheet({
               onValueChange={(v) => {
                 const m = v as "apikey" | "oauth";
                 setAuthMode(m);
-                if (m === "oauth") setFormat("anthropic");
+                if (m === "oauth") {
+                  setFormat("anthropic");
+                  if (isNew) {
+                    setModel(PROVIDER_DEFAULTS.anthropic.model);
+                    setEffort(PROVIDER_DEFAULTS.anthropic.effort);
+                  }
+                }
               }}
             >
               <SelectTrigger>
