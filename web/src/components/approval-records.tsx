@@ -13,7 +13,7 @@ import {
   ShieldAlertIcon,
   XIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { TablePagination } from "@/components/table-pagination";
@@ -38,9 +38,9 @@ import { cn } from "@/lib/utils";
 
 type Translator = ReturnType<typeof useTranslations>;
 
-function fmtTime(value?: string) {
+function fmtTime(value: string | undefined, locale: string) {
   if (!value) return "—";
-  return new Date(value).toLocaleString("ko-KR", {
+  return new Date(value).toLocaleString(locale, {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
@@ -300,6 +300,7 @@ export function ApprovalDetail({
   onResolved?: (status: "allowed" | "denied" | "timeout") => void;
 }) {
   const t = useTranslations("approval");
+  const locale = useLocale();
   const [detail, setDetail] = React.useState<InterceptDetail | null>(null);
   const [error, setError] = React.useState("");
   const [retry, setRetry] = React.useState(0);
@@ -389,9 +390,9 @@ export function ApprovalDetail({
               <ApprovalOrigin row={current} detail />
             </dd>
             <dt className="text-muted-foreground">{t("requestedAt")}</dt>
-            <dd>{fmtTime(row.created_at)}</dd>
+            <dd>{fmtTime(row.created_at, locale)}</dd>
             <dt className="text-muted-foreground">{t("decidedAt")}</dt>
-            <dd>{fmtTime(current.decided_at)}</dd>
+            <dd>{fmtTime(current.decided_at, locale)}</dd>
             {audit?.rule_name ? (
               <>
                 <dt className="text-muted-foreground">{t("ruleSnapshot")}</dt>
@@ -467,7 +468,7 @@ export function ApprovalDetail({
                       <section className="flex min-w-0 flex-col gap-3">
                         <h3 className="font-medium text-muted-foreground text-xs">{t("visibleContext")}</h3>
                         <p className="text-muted-foreground text-xs">
-                          {t("savedContextNote", { time: fmtTime(audit.captured_at) })}
+                          {t("savedContextNote", { time: fmtTime(audit.captured_at, locale) })}
                         </p>
                         {audit.context_truncated ? (
                           <p className="text-muted-foreground text-xs">{t("contextTruncated")}</p>
@@ -524,7 +525,7 @@ export function ApprovalDetail({
                 ) : null}
                 {audit.execution_ended_at ? (
                   <div>
-                    {t("resultRecordedAt")}: {fmtTime(audit.execution_ended_at)}
+                    {t("resultRecordedAt")}: {fmtTime(audit.execution_ended_at, locale)}
                   </div>
                 ) : null}
               </dl>
@@ -568,6 +569,7 @@ function ApprovalTable({
   label: string;
 }) {
   const t = useTranslations("approval");
+  const locale = useLocale();
   const [expanded, setExpanded] = React.useState<Set<number>>(() => new Set());
   const columns = React.useSyncExternalStore(subscribeColumns, visibleColumnCount, serverColumnCount);
   const prefix = React.useId();
@@ -646,10 +648,10 @@ function ApprovalTable({
                   <StatusBadge status={row.status} />
                 </TableCell>
                 <TableCell className="hidden text-muted-foreground text-xs lg:table-cell">
-                  {fmtTime(row.created_at)}
+                  {fmtTime(row.created_at, locale)}
                 </TableCell>
                 <TableCell className="hidden text-muted-foreground text-xs xl:table-cell">
-                  {fmtTime(row.decided_at)}
+                  {fmtTime(row.decided_at, locale)}
                 </TableCell>
               </TableRow>
               {open ? (

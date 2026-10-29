@@ -19,6 +19,7 @@ export function builtinTextKey(text: string): string {
 
 export function useBuiltinText(): (text: string | null | undefined) => string {
   const messages = useMessages() as { builtin?: { text?: Record<string, string> } };
+  // 중국어 내장 본문은 원문으로 표시하고 한국어 기본 마무리 문구 등만 번역표에서 찾는다.
   const table = messages.builtin?.text;
   return useCallback((text) => (text ? (table?.[builtinTextKey(text)] ?? text) : ""), [table]);
 }

@@ -12,7 +12,7 @@ import {
   Trash2Icon,
   XIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { Markdown } from "@/components/markdown";
@@ -59,6 +59,7 @@ const TRAFFIC_TOOL_KEYS = new Set(["traffic_search", "traffic_get"]);
 // Tools. Config + prompt save as before; visibility + tool bindings toggle live.
 export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?: () => void }) {
   const tr = useTranslations("agentEditor");
+  const locale = useLocale();
   const lx = useBuiltinText();
   const [detail, setDetail] = React.useState<AgentDetail | null>(null);
   const [versions, setVersions] = React.useState<PromptVersion[]>([]);
@@ -70,7 +71,10 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
   const [viewVer, setViewVer] = React.useState<PromptVersion | null>(null);
   const [diffVer, setDiffVer] = React.useState<PromptVersion | null>(null);
 
+  // 원문/사용자 초안만 저장하고, 편집 전 내장 번역은 렌더 시점에만 적용한다.
   const [prompt, setPrompt] = React.useState("");
+  const [promptEdited, setPromptEdited] = React.useState(false);
+  const displayedPrompt = promptEdited ? prompt : lx(prompt);
   const [mcpVisible, setMcpVisible] = React.useState<number[]>([]);
   const [skillVisible, setSkillVisible] = React.useState<string[]>([]);
   const [preview, setPreview] = React.useState("");
@@ -128,10 +132,9 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
       .getAgent(agentKey)
       .then((d) => {
         setDetail(d);
-        setPrompt(lx(d.prompt));
-        setVariables(
-          (d.variables ?? []).map((v) => ({ ...v, description: lx(v.description), example: lx(v.example) })),
-        );
+        setPrompt(d.prompt);
+        setPromptEdited(false);
+        setVariables(d.variables ?? []);
         setVersions(d.versions ?? []);
         setMcpVisible(d.visibility?.mcp ?? []);
         setSkillVisible(d.visibility?.skill ?? []);
@@ -142,25 +145,25 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
         setWebSearch(!!d.agent?.web_search);
         setInteractiveShell(!!d.agent?.interactive_shell);
         setWrapup(d.wrapup_prompt ?? "");
-        setWrapupDefault(lx(d.wrapup_default));
+        setWrapupDefault(d.wrapup_default ?? "");
         setWrapupTurns(String(d.wrapup_max_turns ?? 0));
         setWrapupTurnsDefault(d.wrapup_max_turns_default ?? 5);
         setTtSupported(!!d.task_timeout_wrapup_supported);
         setTtWrapup(d.task_timeout_wrapup_prompt ?? "");
-        setTtWrapupDefault(lx(d.task_timeout_wrapup_default));
+        setTtWrapupDefault(d.task_timeout_wrapup_default ?? "");
         setTtTurns(String(d.task_timeout_wrapup_max_turns ?? 0));
         setTtTurnsDefault(d.task_timeout_wrapup_max_turns_default ?? 5);
       })
       .catch(() => setDetail(null))
       .finally(() => setLoaded(true));
-  }, [agentKey, lx]);
+  }, [agentKey]);
   React.useEffect(() => {
     reload();
   }, [reload]);
 
   async function doPreview() {
     try {
-      const r = await api.previewAgentPrompt(agentKey, prompt);
+      const r = await api.previewAgentPrompt(agentKey, displayedPrompt);
       setPreview(r.error ? tr("preview.renderError", { error: r.error }) : r.rendered);
     } catch (e) {
       setPreview(tr("preview.failed", { error: (e as Error).message }));
@@ -435,7 +438,10 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      onClick={() => setPrompt((p) => `${p}{{.${v.name}}}`)}
+                      onClick={() => {
+                        setPrompt(`${displayedPrompt}{{.${v.name}}}`);
+                        setPromptEdited(true);
+                      }}
                       className="hover:bg-muted inline-flex items-center gap-1 rounded-md border bg-muted/40 px-2 py-1 font-mono text-xs"
                     >
                       {`{{.${v.name}}}`}
@@ -445,8 +451,8 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
                     </button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <p className="font-medium">{v.description}</p>
-                    <p className="text-muted-foreground mt-1">{tr("prompt.example", { example: v.example })}</p>
+                    <p className="font-medium">{lx(v.description)}</p>
+                    <p className="text-muted-foreground mt-1">{tr("prompt.example", { example: lx(v.example) })}</p>
                   </TooltipContent>
                 </Tooltip>
               ))}
@@ -457,9 +463,12 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
           <Textarea
             className="font-mono text-xs"
             rows={16}
-            value={prompt}
+            value={displayedPrompt}
             placeholder={tr("prompt.placeholder")}
-            onChange={(e) => setPrompt(e.target.value)}
+            onChange={(e) => {
+              setPrompt(e.target.value);
+              setPromptEdited(true);
+            }}
           />
 
           <div className="flex flex-wrap gap-2">
@@ -507,7 +516,7 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
                   <span className="text-muted-foreground truncate flex-1">{ver.note}</span>
                   {ver.ts && (
                     <span className="text-muted-foreground/60 shrink-0 tabular-nums">
-                      {new Date(ver.ts).toLocaleDateString("ko-KR", {
+                      {new Date(ver.ts).toLocaleDateString(locale, {
                         month: "2-digit",
                         day: "2-digit",
                         hour: "2-digit",
@@ -550,7 +559,7 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
                   {viewVer?.note || tr("version.noNote")}
                   {viewVer?.ts && (
                     <span className="ml-2 text-muted-foreground/60">
-                      {new Date(viewVer.ts).toLocaleString("ko-KR")}
+                      {new Date(viewVer.ts).toLocaleString(locale)}
                     </span>
                   )}
                 </DialogDescription>
@@ -577,7 +586,8 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
                   size="sm"
                   onClick={() => {
                     if (viewVer) {
-                      setPrompt(lx(viewVer.template_text));
+                      setPrompt(viewVer.template_text);
+                      setPromptEdited(false);
                       setViewVer(null);
                       toast.success(tr("toast.loadedToEditor", { version: viewVer.version }));
                     }
@@ -640,7 +650,7 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
             className="font-mono text-xs"
             rows={10}
             value={wrapup}
-            placeholder={wrapupDefault || tr("wrapup.placeholder")}
+            placeholder={lx(wrapupDefault) || tr("wrapup.placeholder")}
             onChange={(e) => setWrapup(e.target.value)}
           />
           <div className="grid gap-1.5">
@@ -670,7 +680,7 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
               <div className="grid gap-1.5">
                 <Label className="text-muted-foreground text-xs">{tr("wrapup.defaultLabel")}</Label>
                 <pre className="text-muted-foreground max-h-40 overflow-y-auto rounded-md border bg-muted/30 p-2 text-xs whitespace-pre-wrap">
-                  {wrapupDefault}
+                  {lx(wrapupDefault)}
                 </pre>
               </div>
             </>
@@ -698,7 +708,7 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
                 className="font-mono text-xs"
                 rows={10}
                 value={ttWrapup}
-                placeholder={ttWrapupDefault || tr("taskTimeout.placeholder")}
+                placeholder={lx(ttWrapupDefault) || tr("taskTimeout.placeholder")}
                 onChange={(e) => setTtWrapup(e.target.value)}
               />
               <div className="grid gap-1.5">
@@ -726,7 +736,7 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
                 <div className="grid gap-1.5">
                   <Label className="text-muted-foreground text-xs">{tr("wrapup.defaultLabel")}</Label>
                   <pre className="text-muted-foreground max-h-40 overflow-y-auto rounded-md border bg-muted/30 p-2 text-xs whitespace-pre-wrap">
-                    {ttWrapupDefault}
+                    {lx(ttWrapupDefault)}
                   </pre>
                 </div>
               )}

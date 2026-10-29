@@ -1,4 +1,94 @@
 {
+  "ui": {
+    "close": "关闭",
+    "loading": "加载中",
+    "sidebar": {
+      "title": "侧边栏",
+      "mobileDescription": "显示移动端侧边栏。",
+      "toggle": "切换侧边栏"
+    },
+    "carousel": {
+      "previous": "上一张",
+      "next": "下一张"
+    },
+    "pagination": {
+      "label": "分页",
+      "previousLabel": "前往上一页",
+      "nextLabel": "前往下一页",
+      "previous": "上一页",
+      "next": "下一页",
+      "more": "更多页"
+    },
+    "breadcrumb": {
+      "label": "面包屑导航",
+      "more": "更多"
+    },
+    "dateRangePicker": {
+      "selectDate": "选择日期"
+    }
+  },
+  "layoutControls": {
+    "open": "打开偏好设置",
+    "title": "偏好设置",
+    "description": "自定义仪表盘布局偏好。",
+    "themePreset": "主题预设",
+    "presetPlaceholder": "预设",
+    "fonts": "字体",
+    "fontPlaceholder": "选择字体",
+    "themeMode": "主题模式",
+    "pageLayout": "页面布局",
+    "navbarBehavior": "导航栏行为",
+    "sidebarStyle": "侧边栏样式",
+    "sidebarCollapseMode": "侧边栏折叠方式",
+    "restore": "恢复默认值",
+    "toggleOption": "切换{option}",
+    "themeCycleAria": "当前主题：{mode}。点击循环切换主题",
+    "mode": {
+      "light": "浅色",
+      "dark": "深色",
+      "system": "跟随系统"
+    },
+    "layout": {
+      "centered": "居中",
+      "fullWidth": "全宽"
+    },
+    "navbar": {
+      "sticky": "固定",
+      "scroll": "随页面滚动"
+    },
+    "sidebarVariant": {
+      "inset": "内嵌",
+      "sidebar": "标准",
+      "floating": "悬浮"
+    },
+    "collapse": {
+      "icon": "图标",
+      "offcanvas": "抽屉式"
+    }
+  },
+  "builtin": {
+    "text": {
+      "0skbif01q": "服务器当前时间（每次执行时实时更新，可减去固定的开始时间来计算经过时间）",
+      "0w2qumq2i": "服务器数据根目录（所有任务和对话产物的根目录，各智能体实际写入其下的子目录，例如 <DataDir>/<taskID>）",
+      "0u2pxvu8n": "本次执行因预算耗尽即将结束。不要再执行任何命令或探测。请按以下顺序处理：(1) 逐一记录上文已经识别但尚未保存的内容。新资产用 insert_assets，探索结论和事实用 record_fact，已确认的漏洞用 report_finding。(2) **最后仅用一句纯文本**，按照系统的输出语言规则总结做了什么以及得出了哪些关键结论。这句话将作为本次执行的结果展示给用户，因此必须输出。",
+      "1as0jkaet": "本轮规划的步数预算即将耗尽。但结束的只是【本轮】，系统之后仍会随情况变化再次唤醒你继续规划。任务本身并未结束，不必在此收束整体计划。请落实本轮已经明确判断的结论，避免本轮白费，但【不要为了收尾而强行编造意图】（本轮没有新意图也是完全正常的结果）。(1) 如已确定【现在就应派发的】探索方向，用一次 add_intent 批量提交（已确定的不要搁置，立即派发）。(2) 对已有发现或事实证明达成的目标，用 prove_goal 标记为 met（不要遗漏）。(3) 如识别出需要分阶段执行的串行利用链，用 TodoWrite 记录，以便下次唤醒后继续派发。处理完即结束本轮，不输出总结文本。",
+      "0zygqfs40": "步数预算即将耗尽，本次交互即将结束。不要开始新的探索或操作。**仅用一句纯文本**，按照系统的输出语言规则向用户总结当前进展、关键结论以及建议的下一步。",
+      "0gy18743w": "预算耗尽，即将结束。先记录已完成但尚未保存的结果，再**仅用一句纯文本**，按照系统的输出语言规则总结做了什么以及得出了哪些关键结论（这句话将作为本次执行的结果展示）。",
+      "0id2cvd8n": "**整个任务已达到时限上限，即将结束**（不是本次执行的预算耗尽，而是整个探索即将结束）。这是最后的机会。(1) 保存【所有】已经识别但尚未记录的内容。新资产用 insert_assets，探索结论和事实用 record_fact，已确认的漏洞用 report_finding。(2) 不要再开始任何新命令或探测。(3) **最后仅用一句纯文本**，按照系统的输出语言规则总结本次意图得出的关键结论。",
+      "0fc9m8y6u": "**整个任务已达到时限上限，即将结束**（结束的不是本轮，而是整个任务）。请依据目前的【全部】事实和发现，进行最后一次目标判定。对已有证据证明达成的目标，用 prove_goal 标记为 met（不要遗漏）。**不要再创建任何新意图**（即使现在派发也不会再执行）。完成判定后立即结束，不输出总结文本。"
+    }
+  },
+  "languageSwitcher": {
+    "switch": "切换语言（当前 {current} → {next}）"
+  },
+  "apiErrors": {
+    "unauthenticated": "尚未通过身份验证",
+    "request": "请求失败：{method} {path}（{status}）",
+    "upload": "上传失败：{status}",
+    "download": "下载失败：{status}",
+    "export": "导出失败：{status}",
+    "report": "获取报告失败：{status}"
+  },
   "auth": {
     "login": {
       "agree": "我已阅读并同意<terms>《使用须知》</terms>",
@@ -181,12 +271,12 @@
     }
   },
   "notFound": {
-    "back": "Go back home",
-    "description": "The page you are looking for could not be found.",
-    "title": "Page not found."
+    "back": "返回首页",
+    "description": "您要查找的页面不存在。",
+    "title": "未找到页面。"
   },
   "search": {
-    "button": "Search",
+    "button": "搜索",
     "empty": "No results found.",
     "placeholder": "Search dashboards, users, and more…"
   },
@@ -1840,6 +1930,7 @@
     "cancel": "取消定位"
   },
   "todoPopover": {
+    "label": "Todo",
     "parseError": "解析 Todo 失败",
     "none": "本会话暂无 Todo",
     "view": "查看最近 Todo",
@@ -2812,6 +2903,9 @@
     }
   },
   "chat": {
+    "agentFallback": "Agent",
+    "tokensBreakdownTitle": "输入 / 缓存(读取) / 输出 token",
+    "tokensBreakdown": "输入 {input} · 缓存 {cache} · 输出 {output}",
     "live": "实时",
     "custom": "自定义",
     "emptyStart": "开始和「{agent}」对话",

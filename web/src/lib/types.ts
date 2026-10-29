@@ -1,11 +1,14 @@
 // ARTEX domain model — types used across the UI.
 // Derived from the functional spec (section 7: 关键数据形状).
 
+import type { Locale } from "@/i18n/config";
+
 export type TaskStatus = "created" | "queued" | "running" | "paused" | "done" | "failed" | "timeout";
 export type EngineMode = "exploring" | "paused" | "stalled" | "idle";
 
 export interface Task {
   id: string;
+  locale?: Locale | "";
   name?: string; // 可选任务名称;空/缺省=未命名,展示时回退到描述
   category_id?: number;
   category_name?: string;
@@ -737,6 +740,7 @@ export interface FindingRetest {
 
 export interface Conversation {
   id: number;
+  locale?: Locale | "";
   running?: boolean; // live server state, returned with the conversation list
   agent_key: string;
   title: string;

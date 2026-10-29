@@ -19,7 +19,7 @@ import {
   Trash2Icon,
   XIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -90,6 +90,7 @@ function StatCard({
 
 export function OverviewTab({ taskId }: { taskId: string }) {
   const t = useTranslations("taskDetail.overviewTab");
+  const locale = useLocale();
   const [task, setTask] = React.useState<Task | null>(null);
   const [stats, setStats] = React.useState<Stats | null>(null);
   const [intents, setIntents] = React.useState<TaskNode[]>([]);
@@ -903,7 +904,7 @@ export function OverviewTab({ taskId }: { taskId: string }) {
             <div className="text-xs text-muted-foreground">{t("heartbeat.lastActivity")}</div>
             <div className="mt-1 inline-flex items-center gap-1 text-sm">
               <ClockIcon className="size-3.5" />
-              {task?.last_activity ? new Date(task.last_activity).toLocaleTimeString("ko-KR") : "—"}
+              {task?.last_activity ? new Date(task.last_activity).toLocaleTimeString(locale) : "—"}
             </div>
           </div>
           <div>
@@ -917,7 +918,7 @@ export function OverviewTab({ taskId }: { taskId: string }) {
               <div className="text-xs text-muted-foreground">{t("heartbeat.completedAt")}</div>
               <div className="mt-1 inline-flex items-center gap-1 text-sm">
                 <ClockIcon className="size-3.5" />
-                {new Date(task.completed_unix * 1000).toLocaleString("ko-KR")}
+                {new Date(task.completed_unix * 1000).toLocaleString(locale)}
               </div>
             </div>
           ) : null}

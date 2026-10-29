@@ -14,7 +14,7 @@ import {
   TargetIcon,
   ZapIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Bar, BarChart, CartesianGrid, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 
 import { StatusBadge } from "@/components/status-badge";
@@ -44,18 +44,20 @@ import { cn } from "@/lib/utils";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-// Compact relative time. Returns the "{n}{unit}" fragment, or null when there is
-// no timestamp; the caller wraps it with the localized "{value} 전 / 前" suffix.
-function fmtRel(ts?: string | number): string | null {
+// Compact relative time in the active locale (e.g. "5분 전" / "5 min. ago" / "5分钟前").
+// Returns null when there is no (or an unparsable) timestamp.
+function fmtRel(locale: string, ts?: string | number): string | null {
   if (!ts) return null;
   const ms = Date.now() - (typeof ts === "number" ? ts * 1000 : Date.parse(ts as string));
+  if (!Number.isFinite(ms)) return null;
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "always", style: "narrow" });
   const s = Math.floor(ms / 1000);
-  if (s < 60) return `${s}s`;
+  if (s < 60) return rtf.format(-s, "second");
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m`;
+  if (m < 60) return rtf.format(-m, "minute");
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  return `${Math.floor(h / 24)}d`;
+  if (h < 24) return rtf.format(-h, "hour");
+  return rtf.format(-Math.floor(h / 24), "day");
 }
 
 function fmtTokens(n: number): string {
@@ -118,9 +120,9 @@ function SectionTitle({
 export default function DashboardPage() {
   const t = useTranslations("dashboard");
   const tStatus = useTranslations("status");
+  const locale = useLocale();
   const rel = (ts?: string | number) => {
-    const v = fmtRel(ts);
-    return v === null ? "—" : t("ago", { value: v });
+    return fmtRel(locale, ts) ?? "—";
   };
   const dailyTrendConfig = React.useMemo(
     () =>

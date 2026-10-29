@@ -1,14 +1,11 @@
-import { resolveLocale } from "@/i18n/config";
-
 import packageJson from "../../package.json";
 
 const currentYear = new Date().getFullYear();
 
-// 브라우저 탭 제목·검색엔진 메타 설명. layout.tsx 의 정적 metadata 로 들어가 모든
-// 페이지의 <title>·<meta name="description"> 에 렌더되므로, 활성 locale 에 맞춰
-// 한국어(ko)·영어(en)·중국어(zh)를 분기한다. zh 는 상류 대조를 위해 원문을 그대로 보존한다.
+// LocaleProvider가 정적 HTML부터 쿠키 복원·언어 전환까지 같은 제목과 설명을 선언한다.
+// Next 정적 metadata와 별도로 등록하지 않아 문서 메타데이터의 소유자를 하나로 유지한다.
 // ko 제목은 엠대시 대신 콜론을 써서 "제품명: 설명" 형태로 둔다.
-const META_BY_LOCALE = {
+export const META_BY_LOCALE = {
   ko: {
     title: "ARTEX: 자율 침투 테스트 콘솔",
     description: "LLM 기반으로 자율 침투 테스트를 수행하는 시스템 콘솔",
@@ -27,5 +24,4 @@ export const APP_CONFIG = {
   name: "ARTEX",
   version: packageJson.version,
   copyright: `© ${currentYear}, ARTEX.`,
-  meta: META_BY_LOCALE[resolveLocale()],
 };

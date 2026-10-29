@@ -238,6 +238,11 @@ func (e *Engine) IsDeleting(taskID string) bool {
 // registerTaskRoutines reserves count goroutines in the task runtime. Callers
 // hold deleteMu for reading so StopTask cannot race WaitGroup.Add with Wait.
 func (e *Engine) registerTaskRoutines(parent context.Context, taskID string, count int) *taskRuntime {
+	if e.m != nil {
+		if t, ok := e.m.Task(taskID); ok {
+			parent = agent.WithLocale(parent, t.Locale)
+		}
+	}
 	e.runtimeMu.Lock()
 	defer e.runtimeMu.Unlock()
 	rt := e.runtimes[taskID]
@@ -338,6 +343,11 @@ func (e *Engine) Resume(t *Task) {
 // execContextFor returns a live per-task context derived from parent, recreating
 // it if a prior pause cancelled it.
 func (e *Engine) execContextFor(parent context.Context, taskID string) context.Context {
+	if e.m != nil {
+		if t, ok := e.m.Task(taskID); ok {
+			parent = agent.WithLocale(parent, t.Locale)
+		}
+	}
 	e.execMu.Lock()
 	defer e.execMu.Unlock()
 	if e.IsPaused(taskID) {
@@ -781,6 +791,7 @@ func (e *Engine) ReadyFor(t *Task) bool {
 // but no-op until an LLM is configured (so a task created while idle picks up
 // automatically once LLM is set from the UI).
 func (e *Engine) Run(ctx context.Context, t *Task) {
+	ctx = agent.WithLocale(ctx, t.Locale)
 	workers := e.m.Workers()
 	e.deleteMu.RLock()
 	if e.IsDeleting(t.ID) {

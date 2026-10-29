@@ -1,5 +1,5 @@
 // Mock 路由：把 (method, path) 映射到 lib/mock/data 的静态数据。
-// 未命中的一律返回安全默认（[] / {} / {ok:true}），保证任何页面都不崩。
+// 未命中的返回默认（[] / {} / {ok:true}）；页面依赖的响应结构必须显式实现。
 // 只在 NEXT_PUBLIC_MOCK=1 时经由 api.ts 的 http() 短路进入这里。
 
 import {
@@ -22,6 +22,7 @@ import type {
   FindingTraffic,
   FindingTrafficBinding,
   IntentAsset,
+  NotificationMeta,
   ScopeRow,
   Task,
   TaskArchive,
@@ -1030,6 +1031,34 @@ export async function mockHandle<T>(method: string, rawPath: string, body?: Body
 
 function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Record<string, unknown>): unknown {
   const task = q.get("task") ?? undefined;
+
+  // 알림 화면도 실제 API의 메타데이터·목록 계약을 사용한다.
+  if (path === "/notify/meta" && m === "GET") {
+    return {
+      kinds: [
+        { kind: "dingtalk", default_rate_per_min: 20, secret_keys: ["webhook", "secret"] },
+        { kind: "email", default_rate_per_min: 60, secret_keys: ["password"] },
+        { kind: "feishu", default_rate_per_min: 100, secret_keys: ["webhook", "secret"] },
+        { kind: "telegram", default_rate_per_min: 20, secret_keys: ["bot_token"] },
+        { kind: "webhook", default_rate_per_min: 0, secret_keys: ["url", "headers"] },
+        { kind: "wecom", default_rate_per_min: 20, secret_keys: ["webhook"] },
+      ],
+      enabled: D.settings.notify_enabled ?? true,
+      public_base_url: D.settings.notify_public_base_url ?? "",
+      digest_interval_min: String(D.settings.notify_digest_interval_min ?? ""),
+      defaults: { digest_interval_min: 30 },
+      stats: { channels: 0, channels_on: 0, pending: 0, failed: 0, sent_today: 0, backlog_age_ms: 0 },
+    } satisfies NotificationMeta;
+  }
+  if (path === "/notify/channels" && m === "GET") return { channels: [] };
+  if (path === "/notify/deliveries" && m === "GET") {
+    return {
+      deliveries: [],
+      total: 0,
+      page: Math.max(1, Number(q.get("page")) || 1),
+      page_size: Math.max(1, Number(q.get("page_size")) || 50),
+    };
+  }
 
   if (path === "/chat/mentions" && m === "GET") {
     const kind = q.get("kind") ?? "";

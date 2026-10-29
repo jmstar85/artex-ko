@@ -5,7 +5,7 @@ import * as React from "react";
 import Link from "next/link";
 
 import { RotateCcwIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { FindingRetestDialog } from "@/components/finding-retest-dialog";
 import { Markdown } from "@/components/markdown";
@@ -35,6 +35,7 @@ export function FindingRetestPanel({
   onCompleted?: () => void;
 }) {
   const t = useTranslations("retest.panel");
+  const locale = useLocale();
   const [items, setItems] = React.useState<FindingRetest[] | null>(null);
   const [error, setError] = React.useState("");
   const [open, setOpen] = React.useState(false);
@@ -127,7 +128,7 @@ export function FindingRetestPanel({
                       : t(`status.${item.status}`)}
                   </Badge>
                   <span className="text-muted-foreground text-xs">
-                    #{item.id} · {new Date(item.created_at).toLocaleString("ko-KR")}
+                    #{item.id} · {new Date(item.created_at).toLocaleString(locale)}
                   </span>
                   {item.conversation_id != null ? (
                     <Button asChild variant="ghost" size="sm" className="ml-auto">

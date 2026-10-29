@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 import { ArrowLeftIcon, ArrowUpRightIcon, ShieldAlertIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { CopyButton } from "@/components/copy-button";
@@ -40,8 +40,8 @@ const FINDING_STATUSES: FindingStatus[] = [
   "risk_accepted",
 ];
 
-function fmtTime(ts: string) {
-  return new Date(ts).toLocaleString("ko-KR");
+function fmtTime(ts: string, locale: string) {
+  return new Date(ts).toLocaleString(locale);
 }
 
 // FieldRow is one label/value line in the right-hand status panel.
@@ -62,6 +62,7 @@ function FindingDetailInner() {
   const [loaded, setLoaded] = React.useState(false);
   const [tab, setTab] = React.useState("overview");
   const t = useTranslations("findings");
+  const locale = useLocale();
   const tStatus = useTranslations("status");
 
   const load = React.useCallback(() => {
@@ -322,7 +323,7 @@ function FindingDetailInner() {
 
                 {/* 发现时间 */}
                 <FieldRow label={t("detail.fieldTime")}>
-                  <span className="tabular-nums">{fmtTime(finding.ts)}</span>
+                  <span className="tabular-nums">{fmtTime(finding.ts, locale)}</span>
                 </FieldRow>
               </CardContent>
             </Card>

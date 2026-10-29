@@ -83,8 +83,8 @@ func chatWorkDirSpec(workDir string) string {
 
 // chatSystem renders the DB-managed prompt body for agentKey. Custom agents have
 // no per-key in-code default, so DefaultAssistantPrompt is the render fallback.
-func chatSystem(agentKey, dataDir, workDir string) string {
-	return renderSystem(agentKey, DefaultAssistantPrompt, chatVars{DataDir: dataDir, Now: nowStr()}) + chatWorkDirSpec(workDir) + langDirective()
+func chatSystem(agentKey, dataDir, workDir, locale string) string {
+	return renderSystem(agentKey, DefaultAssistantPrompt, chatVars{DataDir: dataDir, Now: nowStr()}) + chatWorkDirSpec(workDir) + langDirective(locale)
 }
 
 // chatVars carries the runtime variables a custom agent's prompt may reference.
@@ -123,7 +123,7 @@ func (c *ChatAgent) Chat(ctx context.Context, agentKey, sessionID, message strin
 	tools, def, cleanup := AugmentTools(ctx, agentKey, base)
 	defer cleanup()
 
-	system, boundary := deferredSystem(chatSystem(agentKey, c.workDir, sessionWorkDir), def)
+	system, boundary := deferredSystem(chatSystem(agentKey, c.workDir, sessionWorkDir, LocaleFromContext(ctx)), def)
 	opts := agentcore.Options{
 		Provider:        c.prov,
 		SystemPrompt:    system,

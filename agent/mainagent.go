@@ -100,9 +100,9 @@ const mainAgentDefaultTmpl = `你是一个授权渗透测试系统的"主 agent"
 
 不要编造发现；只根据工具返回的真实数据回答。`
 
-func mainAgentSystem(goal, dataDir, workDir string) string {
+func mainAgentSystem(goal, dataDir, workDir, locale string) string {
 	body := renderSystem("mainagent", mainAgentDefaultTmpl, MainVars{Goal: goal, DataDir: dataDir, Now: nowStr()})
-	return body + artifactSpec(workDir) + langDirective()
+	return body + artifactSpec(workDir) + langDirective(locale)
 }
 
 // Chat handles one human message and returns the assistant reply. emit, if
@@ -131,7 +131,7 @@ func (m *MainAgent) Chat(ctx context.Context, taskID int64, mainSeg int, as *db.
 	// 本任务的工作目录 <workDir>/tasks/<taskID>，先建好。
 	mainDir := ensureRunDir(m.workDir, taskID, 0)
 	ctx = intercept.WithReviewWorkingDirectory(ctx, mainDir)
-	system, boundary := deferredSystem(mainAgentSystem(goal, m.workDir, mainDir), def)
+	system, boundary := deferredSystem(mainAgentSystem(goal, m.workDir, mainDir, LocaleFromContext(ctx)), def)
 	opts := agentcore.Options{
 		Provider:        m.prov,
 		SystemPrompt:    system,

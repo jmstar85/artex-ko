@@ -20,7 +20,7 @@ import {
   XIcon,
   ZapIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { ApprovalExecutionFocus, useApprovalFocus, useApprovalHistory } from "@/components/approval-execution-focus";
@@ -470,7 +470,7 @@ function DraftChat({
         <div className="bg-primary/10 flex size-12 items-center justify-center rounded-full">
           <Bot className="text-primary size-6" />
         </div>
-        <div className="text-sm font-medium">{t("emptyStart", { agent: agent?.name ?? "에이전트" })}</div>
+        <div className="text-sm font-medium">{t("emptyStart", { agent: agent?.name ?? t("agentFallback") })}</div>
         {agent?.description && <p className="text-muted-foreground max-w-md text-xs">{agent.description}</p>}
       </div>
 
@@ -813,8 +813,12 @@ function ChatView({
             </span>
           )}
           {tokenTotal.any && (
-            <span title="input / cache(read) / output tokens" className="min-w-0 truncate tabular-nums">
-              input {fmtTokens(tokenTotal.i)} · cache {fmtTokens(tokenTotal.cr)} · output {fmtTokens(tokenTotal.o)}
+            <span title={t("tokensBreakdownTitle")} className="min-w-0 truncate tabular-nums">
+              {t("tokensBreakdown", {
+                input: fmtTokens(tokenTotal.i),
+                cache: fmtTokens(tokenTotal.cr),
+                output: fmtTokens(tokenTotal.o),
+              })}
             </span>
           )}
         </div>
@@ -911,6 +915,7 @@ const ConversationItem = React.memo(function ConversationItem({
   onSelectedForDeleteChange: (id: number, checked: boolean) => void;
 }) {
   const t = useTranslations("chat");
+  const locale = useLocale();
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const renameInputRef = React.useRef<HTMLInputElement>(null);
   const cancelRenameRef = React.useRef(false);
@@ -983,7 +988,7 @@ const ConversationItem = React.memo(function ConversationItem({
               </>
             )}
             <span className="shrink-0">
-              {new Date(conv.created_at).toLocaleDateString("ko-KR", {
+              {new Date(conv.created_at).toLocaleDateString(locale, {
                 month: "numeric",
                 day: "numeric",
                 hour: "2-digit",
@@ -1084,6 +1089,7 @@ function AgentGroupHeader({
 
 export default function ChatPage() {
   const t = useTranslations("chat");
+  const locale = useLocale();
   const lx = useBuiltinText();
   const [agents, setAgents] = React.useState<Agent[]>([]);
   const [profiles, setProfiles] = React.useState<LLMProfile[]>([]);
@@ -1270,8 +1276,8 @@ export default function ChatPage() {
     if (agentFilter !== null) keys.add(agentFilter);
     return [...keys]
       .map((key) => ({ key, name: agentByKey.get(key)?.name || key, count: counts.get(key) ?? 0 }))
-      .sort((a, b) => a.name.localeCompare(b.name, "ko"));
-  }, [convs, chatAgents, agentByKey, agentFilter]);
+      .sort((a, b) => a.name.localeCompare(b.name, locale));
+  }, [convs, chatAgents, agentByKey, agentFilter, locale]);
   const conversationCountLabel =
     agentFilter === null
       ? t("totalCount", { count: convs.length })

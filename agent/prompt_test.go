@@ -34,7 +34,7 @@ func TestRenderSystemOverrideAndFallback(t *testing.T) {
 	// full plannerSystem path: DB body [A] is honored, then the code-owned tail
 	// [C] (中间产物输出规约) is ALWAYS appended — editing the body can't drop it.
 	PromptOverride = func(k string) (string, bool) { return "PLANNER {{.Goal}}", true }
-	got := plannerSystem("拿下X", "/data", "/data")
+	got := plannerSystem("拿下X", "/data", "/data", "")
 	if !strings.HasPrefix(got, "PLANNER 拿下X") {
 		t.Fatalf("plannerSystem body not honored: %q", got)
 	}
@@ -50,7 +50,7 @@ func TestRenderSystemOverrideAndFallback(t *testing.T) {
 	PromptOverride = func(k string) (string, bool) {
 		return "{{if .ProxyAddr}}走代理 {{.ProxyAddr}}{{else}}手动{{end}}", true
 	}
-	recording := workerSystem("127.0.0.1:8080", "/ca.pem", "/data", "/data")
+	recording := workerSystem("127.0.0.1:8080", "/ca.pem", "/data", "/data", "")
 	if !strings.HasPrefix(recording, "走代理 127.0.0.1:8080") {
 		t.Fatalf("worker proxy branch body: %q", recording)
 	}
@@ -65,14 +65,14 @@ func TestRenderSystemOverrideAndFallback(t *testing.T) {
 	}
 	// Egress proxy set but capture OFF (no CA): the ProxyAddr template branch still
 	// renders, but the trafficTool block must NOT — those tools are not registered.
-	egressOnly := workerSystem("127.0.0.1:8080", "", "/data", "/data")
+	egressOnly := workerSystem("127.0.0.1:8080", "", "/data", "/data", "")
 	if !strings.HasPrefix(egressOnly, "走代理 127.0.0.1:8080") {
 		t.Fatalf("worker egress-only branch body: %q", egressOnly)
 	}
 	if strings.Contains(egressOnly, "traffic_search") {
 		t.Fatalf("worker without recording must NOT inject trafficTool: %q", egressOnly)
 	}
-	noProxy := workerSystem("", "", "/data", "/data")
+	noProxy := workerSystem("", "", "/data", "/data", "")
 	if !strings.HasPrefix(noProxy, "手动") {
 		t.Fatalf("worker no-proxy branch body: %q", noProxy)
 	}
@@ -81,57 +81,39 @@ func TestRenderSystemOverrideAndFallback(t *testing.T) {
 	}
 }
 
-// TestLangDirectiveAppendedToUserFacingRoles pins the artex-ko localization tail:
-// every user-facing role's system prompt must end with the code-owned adaptive
-// KO/EN output-language directive, and a DB-edited body must NOT be able to drop it.
-func TestLangDirectiveAppendedToUserFacingRoles(t *testing.T) {
-	t.Cleanup(func() { PromptOverride = nil })
-
-	// The directive makes OUTPUT follow the user's language (Korean or English),
-	// forbids Chinese, and preserves raw technical strings; all signals must be
-	// present. KO + EN markers + no-Chinese clause + verbatim clause.
-	dir := langDirective()
-	if !strings.Contains(dir, "한국어") || !strings.Contains(dir, "English") {
-		t.Fatalf("langDirective must name both Korean and English as output languages, got %q", dir)
+// Custom bodies remain intact while every user-facing role receives the selected
+// run's code-owned policy after its body and artifact/scope instructions.
+func TestLocaleDirectiveAppendedToUserFacingRoles(t *testing.T) {
+	previous := PromptOverride
+	t.Cleanup(func() { PromptOverride = previous })
+	const body = "USER BODY: keep paths /data/example and payload SELECT 1 verbatim"
+	PromptOverride = func(string) (string, bool) { return body, true }
+	for _, locale := range []string{"", "ko", "en", "zh"} {
+		t.Run(locale, func(t *testing.T) {
+			cases := map[string]string{
+				"worker": workerSystem("", "", "/data", "/data", locale),
+				"planner": plannerSystem("g", "/data", "/data", locale),
+				"mainagent": mainAgentSystem("g", "/data", "/data", locale),
+				"chat": chatSystem("chat", "/data", "/data", locale),
+				"custom": chatSystem("custom", "/data", "/data", locale),
+				"reporter": chatSystem("reporter", "/data", "/data", locale),
+				"auto": chatSystem("auto", "/data", "/data", locale),
+				"goals": goalsSystem("/data", true, locale),
+			}
+			for role, sys := range cases {
+				if !strings.HasPrefix(sys, body) || !strings.HasSuffix(sys, langDirective(locale)) {
+					t.Fatalf("%s/%s: custom body or selected language policy lost: %q", role, locale, sys)
+				}
+			}
+		})
 	}
-	if !strings.Contains(dir, "payload") || !strings.Contains(dir, "VERBATIM") {
-		t.Fatalf("langDirective must keep commands/payloads verbatim, got %q", dir)
+	if langDirective("invalid") != langDirective("") || langReminder("invalid") != langReminder("") {
+		t.Fatal("invalid locale must retain the legacy language policy")
 	}
-	// Anti-drift: the directive must forbid leaking the Chinese instruction/brain
-	// language into user-facing text, and name the planner situation summary as a
-	// user-facing field. Locked here so a future edit can't silently drop them.
-	if !strings.Contains(dir, "절대 중국어로 출력하지 마십시오") {
-		t.Fatalf("langDirective must forbid leaking Chinese to the user, got %q", dir)
-	}
-	if !strings.Contains(dir, "situation summary") {
-		t.Fatalf("langDirective must name the planner situation summary as user-facing, got %q", dir)
-	}
-
-	// Even with a DB body that is pure non-directive text, the code-owned tail is
-	// still appended for each user-facing builder — identical guarantee to the
-	// artifact tail. A custom body can never translate away the Korean mandate.
-	PromptOverride = func(string) (string, bool) { return "BODY-ONLY", true }
-	cases := map[string]string{
-		"worker":    workerSystem("", "", "/data", "/data"),
-		"planner":   plannerSystem("g", "/data", "/data"),
-		"mainagent": mainAgentSystem("g", "/data", "/data"),
-		"chat":      chatSystem("chat", "/data", "/data"),
-		// goals is user-facing too: set_goals/set_constraints persist goal and
-		// constraint nodes shown in the UI graph/plan tab. withScope=true exercises
-		// the longer assembly (body + scope tail), so the Korean tail must still land
-		// last — after both the body and the code-owned scope tail.
-		"goals": goalsSystem("/data", true),
-	}
-	for role, sys := range cases {
-		if !strings.HasPrefix(sys, "BODY-ONLY") {
-			t.Fatalf("%s: DB body not honored: %q", role, sys)
-		}
-		if !strings.Contains(sys, "한국어") {
-			t.Fatalf("%s: missing Korean output-language tail: %q", role, sys)
-		}
-		// The directive is the tail — it must come AFTER the body (recency).
-		if strings.Index(sys, "한국어") <= strings.Index(sys, "BODY-ONLY") {
-			t.Fatalf("%s: langDirective must be appended after the body: %q", role, sys)
+	for _, policy := range []string{langDirective("zh"), langReminder("zh")} {
+		if !strings.Contains(policy, "中文") || strings.Contains(policy, "NEVER answer in Chinese") ||
+			strings.Contains(policy, "never in Chinese") || strings.Contains(policy, "절대 중국어로") {
+			t.Fatalf("Chinese policy missing or contradicted: %q", policy)
 		}
 	}
 }

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { CapturedTrafficViewer } from "@/components/traffic-evidence-viewer";
@@ -41,6 +41,7 @@ export function TrafficPickerDialog({
   onBound: () => void;
 }) {
   const t = useTranslations("trafficEvidence");
+  const locale = useLocale();
   const [host, setHost] = React.useState("");
   const [method, setMethod] = React.useState("all");
   const [query, setQuery] = React.useState("");
@@ -217,7 +218,7 @@ export function TrafficPickerDialog({
                       {alreadyBound.has(e.id) ? <Badge variant="secondary">{t("picker.bound")}</Badge> : null}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-xs">
-                      {new Date(e.ts).toLocaleString("ko-KR")}
+                      {new Date(e.ts).toLocaleString(locale)}
                     </TableCell>
                     <TableCell>{e.status}</TableCell>
                     <TableCell>

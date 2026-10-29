@@ -165,7 +165,7 @@ func (s *Server) pgCreateConversation(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, fmt.Sprintf(convErrTitleTooLong, maxConversationTitleRunes))
 		return
 	}
-	c, err := pg.CreateConversation(req.AgentKey, title, req.LLMProfileID)
+	c, err := pg.CreateConversationWithLocale(req.AgentKey, title, req.LLMProfileID, requestLocale(r))
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -476,6 +476,29 @@ func (s *Server) pgSendConversationMessage(w http.ResponseWriter, r *http.Reques
 	s.chatBusy[busyKey] = true
 	s.chatMu.Unlock()
 
+	// Reload after reserving the turn: a previous turn may have committed its
+	// locale between convByID and this reservation. Only this run owns c.
+	current, err := pg.GetConversation(c.ID)
+	if err != nil || current == nil {
+		s.chatMu.Lock()
+		delete(s.chatBusy, busyKey)
+		s.chatMu.Unlock()
+		writeErr(w, 500, "conversation locale unavailable")
+		return
+	}
+	c = current
+	locale := requestLocaleOr(r, c.Locale)
+	if locale != c.Locale {
+		if err := pg.UpdateConversationLocale(c.ID, locale); err != nil {
+			s.chatMu.Lock()
+			delete(s.chatBusy, busyKey)
+			s.chatMu.Unlock()
+			writeErr(w, 500, err.Error())
+			return
+		}
+		c.Locale = locale
+	}
+
 	// persist + float the human turn; auto-title the thread from the first message.
 	// Worker is the agent key (not "user") so the transcript stays a single lane
 	// (no worker chips) — the kind='user' already right-aligns it as a human bubble.
@@ -514,6 +537,7 @@ func (s *Server) pgSendConversationMessage(w http.ResponseWriter, r *http.Reques
 // busyKey clears when the run ends (best-effort in-flight marker).
 func (s *Server) runConversation(c *db.Conversation, msg, busyKey string, userMessage ...string) {
 	ctx, cancel := s.conversationRunContext(c.ID, busyKey)
+	ctx = agent.WithLocale(ctx, c.Locale)
 	// Only the human-message handler supplies this field, before adding the
 	// attachment manifest. Scheduler/retest prompts must not be labelled as users.
 	if len(userMessage) == 1 {
@@ -528,6 +552,7 @@ func (s *Server) runConversation(c *db.Conversation, msg, busyKey string, userMe
 // for completion before starting the next queued fire for the same agent.
 func (s *Server) runConversationSync(c *db.Conversation, msg, busyKey string) {
 	ctx, cancel := s.conversationRunContext(c.ID, busyKey)
+	ctx = agent.WithLocale(ctx, c.Locale)
 	s.runConversationTurn(ctx, cancel, c, msg, busyKey)
 }
 
@@ -673,9 +698,20 @@ func (s *Server) StartTriggeredRun(agentKey, title, message string, taskID int64
 		return
 	}
 	cfg := s.readTriggerBehavior(agentKey) // DB read BEFORE the lock (never under queueMu)
+	locale := ""
+	if taskID > 0 {
+		task, err := s.m.pg.GetTask(taskID)
+		if err != nil {
+			log.Printf("[trigger] read task locale: %v", err)
+			return
+		}
+		if task != nil {
+			locale = task.Locale
+		}
+	}
 	s.queueMu.Lock()
 	s.triggerCfg[agentKey] = cfg
-	s.triggerQ[agentKey] = append(s.triggerQ[agentKey], triggeredRun{agentKey: agentKey, title: title, message: message, taskID: taskID, taskDesc: taskDesc, taskGoal: taskGoal, mergeable: mergeable})
+	s.triggerQ[agentKey] = append(s.triggerQ[agentKey], triggeredRun{agentKey: agentKey, locale: locale, title: title, message: message, taskID: taskID, taskDesc: taskDesc, taskGoal: taskGoal, mergeable: mergeable})
 	s.pumpLocked(agentKey)
 	s.queueMu.Unlock()
 }
@@ -724,7 +760,7 @@ func (s *Server) runAndPump(agentKey string, item triggeredRun) {
 //
 //	parallel / none → one head item, no merge
 //	by_task         → head + all queued same-task mergeable fires merged into one
-//	all             → the ENTIRE queue merged into one run (regardless of task/type)
+//	all             → all queued fires with the head's locale
 //
 // Caller holds queueMu.
 func (s *Server) nextTriggerRun(agentKey string, cfg triggerBehavior) triggeredRun {
@@ -734,8 +770,17 @@ func (s *Server) nextTriggerRun(agentKey string, cfg triggerBehavior) triggeredR
 		return q[0]
 	}
 	if cfg.mergeMode == "all" {
-		s.triggerQ[agentKey] = q[:0:0]
-		return mergeAllRuns(q)
+		group := []triggeredRun{q[0]}
+		rest := q[:0:0]
+		for _, item := range q[1:] {
+			if item.locale == q[0].locale {
+				group = append(group, item)
+			} else {
+				rest = append(rest, item)
+			}
+		}
+		s.triggerQ[agentKey] = rest
+		return mergeAllRuns(group)
 	}
 	// by_task: head + same-task mergeable fires.
 	head := q[0]
@@ -746,7 +791,7 @@ func (s *Server) nextTriggerRun(agentKey string, cfg triggerBehavior) triggeredR
 	group := []triggeredRun{head}
 	rest := q[:0:0] // keep non-matching items in order
 	for _, it := range q[1:] {
-		if it.mergeable && it.taskID == head.taskID {
+		if it.mergeable && it.taskID == head.taskID && it.locale == head.locale {
 			group = append(group, it)
 		} else {
 			rest = append(rest, it)
@@ -817,6 +862,7 @@ func mergeTriggeredRuns(items []triggeredRun) triggeredRun {
 	}
 	return triggeredRun{
 		agentKey:  first.agentKey,
+		locale:    first.locale,
 		title:     fmt.Sprintf("合并触发 · task#%d · %d 条", first.taskID, len(items)),
 		message:   b.String(),
 		taskID:    first.taskID,
@@ -825,7 +871,7 @@ func mergeTriggeredRuns(items []triggeredRun) triggeredRun {
 	}
 }
 
-// mergeAllRuns folds the ENTIRE queued burst into one run (merge_mode='all'),
+// mergeAllRuns folds a same-locale queued burst into one run (merge_mode='all'),
 // regardless of type. Events are grouped by task (tasks in first-appearance order,
 // events in their original order within a task), so each task's context header — and
 // its possibly long description/goal — is written exactly ONCE even when fires from
@@ -859,6 +905,7 @@ func mergeAllRuns(items []triggeredRun) triggeredRun {
 	}
 	return triggeredRun{
 		agentKey:  first.agentKey,
+		locale:    first.locale,
 		title:     fmt.Sprintf("合并触发 · 全部 · %d 条", len(items)),
 		message:   b.String(),
 		taskID:    first.taskID,
@@ -877,7 +924,7 @@ func (s *Server) runTriggeredRun(item triggeredRun) {
 		}
 	}()
 	pg := s.m.pg
-	c, err := pg.CreateConversation(item.agentKey, firstLine(item.title, 60), nil)
+	c, err := pg.CreateConversationWithLocale(item.agentKey, firstLine(item.title, 60), nil, item.locale)
 	if err != nil {
 		log.Printf("[trigger] create conversation for %s failed: %v", item.agentKey, err)
 		return

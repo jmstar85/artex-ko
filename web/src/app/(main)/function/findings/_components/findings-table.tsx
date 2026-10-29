@@ -13,7 +13,7 @@ import {
   ShieldAlertIcon,
   Trash2Icon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { CopyButton } from "@/components/copy-button";
 import { Markdown } from "@/components/markdown";
@@ -77,8 +77,8 @@ export function isSameFinding(left: Finding, right: Finding): boolean {
   return findingRowKey(left) === findingRowKey(right);
 }
 
-export function fmtTime(ts: string) {
-  return new Date(ts).toLocaleString("ko-KR", {
+export function fmtTime(ts: string, locale: string) {
+  return new Date(ts).toLocaleString(locale, {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
@@ -132,6 +132,7 @@ export function FindingsTable({
   selectAllLabel,
 }: FindingsTableProps) {
   const t = useTranslations("findings");
+  const locale = useLocale();
   const tStatus = useTranslations("status");
   const resolvedSelectAllLabel = selectAllLabel ?? t("selectAllPage");
   const selectableIds = items.map((finding) => finding.finding_id).filter((id): id is string => Boolean(id));
@@ -272,7 +273,7 @@ export function FindingsTable({
                     <span className="text-muted-foreground">—</span>
                   )}
                 </TableCell>
-                <TableCell className="text-xs text-muted-foreground tabular-nums">{fmtTime(f.ts)}</TableCell>
+                <TableCell className="text-xs text-muted-foreground tabular-nums">{fmtTime(f.ts, locale)}</TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-1">
                     {retest ? (

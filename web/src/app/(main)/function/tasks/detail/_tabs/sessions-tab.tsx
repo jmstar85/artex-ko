@@ -25,7 +25,7 @@ import {
   XIcon,
   ZapOffIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { ApprovalExecutionFocus, useApprovalFocus, useApprovalHistory } from "@/components/approval-execution-focus";
@@ -491,6 +491,7 @@ function WorkerAssetBadge({ assets }: { assets: IntentAsset[] }) {
 
 export function SessionsTab({ taskId }: { taskId: string }) {
   const t = useTranslations("sessions");
+  const locale = useLocale();
   const approvalFocus = useApprovalFocus({ taskId });
   const [selectedSessionId, setActiveId] = React.useState(MAIN_ID);
   const focusSession = React.useMemo<Session | undefined>(() => {
@@ -1696,10 +1697,10 @@ export function SessionsTab({ taskId }: { taskId: string }) {
                 </TooltipTrigger>
                 <TooltipContent>
                   {t("tokens.full", {
-                    input: taskTokens.input_tokens.toLocaleString(),
-                    output: taskTokens.output_tokens.toLocaleString(),
-                    cacheRead: taskTokens.cache_read_tokens.toLocaleString(),
-                    cacheWrite: taskTokens.cache_write_tokens.toLocaleString(),
+                    input: taskTokens.input_tokens.toLocaleString(locale),
+                    output: taskTokens.output_tokens.toLocaleString(locale),
+                    cacheRead: taskTokens.cache_read_tokens.toLocaleString(locale),
+                    cacheWrite: taskTokens.cache_write_tokens.toLocaleString(locale),
                   })}
                 </TooltipContent>
               </Tooltip>
@@ -1886,10 +1887,10 @@ export function SessionsTab({ taskId }: { taskId: string }) {
                     </TooltipTrigger>
                     <TooltipContent>
                       {t("tokens.full", {
-                        input: activeTokens.input_tokens.toLocaleString(),
-                        output: activeTokens.output_tokens.toLocaleString(),
-                        cacheRead: activeTokens.cache_read_tokens.toLocaleString(),
-                        cacheWrite: activeTokens.cache_write_tokens.toLocaleString(),
+                        input: activeTokens.input_tokens.toLocaleString(locale),
+                        output: activeTokens.output_tokens.toLocaleString(locale),
+                        cacheRead: activeTokens.cache_read_tokens.toLocaleString(locale),
+                        cacheWrite: activeTokens.cache_write_tokens.toLocaleString(locale),
                       })}
                     </TooltipContent>
                   </Tooltip>

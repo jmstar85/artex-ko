@@ -86,6 +86,12 @@ func scanRetest(row interface{ Scan(...any) error }) (*FindingRetest, error) {
 // and persists the first message. A finding row lock deduplicates simultaneous
 // clicks across clients; an existing active run is returned without dispatching.
 func (d *DB) CreateFindingRetest(ctx context.Context, findingID int64, notes string) (*FindingRetest, *Conversation, bool, error) {
+	return d.CreateFindingRetestWithLocale(ctx, findingID, notes, "")
+}
+
+// CreateFindingRetestWithLocale inherits the source task's immutable locale;
+// the request locale is used only for findings with no source task.
+func (d *DB) CreateFindingRetestWithLocale(ctx context.Context, findingID int64, notes, locale string) (*FindingRetest, *Conversation, bool, error) {
 	tx, err := d.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, nil, false, err
@@ -112,8 +118,9 @@ func (d *DB) CreateFindingRetest(ctx context.Context, findingID int64, notes str
 	if runes := []rune(title); len(runes) > 100 {
 		title = string(runes[:100])
 	}
-	c, err := scanConv(tx.QueryRowContext(ctx, `INSERT INTO conversations(agent_key,title) VALUES ($1,$2) RETURNING `+convCols,
-		FindingRetestAgentKey, fmt.Sprintf("复测 #%d · %s", findingID, title)))
+	c, err := scanConv(tx.QueryRowContext(ctx, `INSERT INTO conversations(agent_key,title,locale)
+	VALUES ($1,$2,COALESCE((SELECT t.locale FROM findings f JOIN tasks t ON t.id=f.task_id WHERE f.id=$3),$4))
+	RETURNING `+convCols, FindingRetestAgentKey, fmt.Sprintf("复测 #%d · %s", findingID, title), findingID, locale))
 	if err != nil {
 		return nil, nil, false, err
 	}

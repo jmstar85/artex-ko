@@ -42,7 +42,7 @@ import {
   Undo2Icon,
   XIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { AssetInterceptRulesEditor } from "@/components/asset-intercept-rules-editor";
@@ -1602,11 +1602,11 @@ function archiveDataTotal(archive: TaskArchive): number {
   return Object.values(archive.data_counts).reduce((sum, value) => sum + (Number(value) || 0), 0);
 }
 
-function archiveDate(value?: string): string {
+function archiveDate(value: string | undefined, locale: string): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString();
+  return date.toLocaleString(locale);
 }
 
 function ArchiveDeleteDialog({
@@ -1619,6 +1619,7 @@ function ArchiveDeleteDialog({
   trigger: React.ReactNode;
 }) {
   const t = useTranslations("tasksPage");
+  const locale = useLocale();
   const [open, setOpen] = React.useState(false);
   const [pending, setPending] = React.useState(false);
   const rows = archives.reduce((sum, archive) => sum + archiveDataTotal(archive), 0);
@@ -1630,7 +1631,7 @@ function ArchiveDeleteDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>{t("archive.deleteTitle", { count: archives.length })}</AlertDialogTitle>
           <AlertDialogDescription className="[overflow-wrap:anywhere]">
-            {t("archive.deleteDescription", { size: formatArchiveBytes(bytes), rows: rows.toLocaleString() })}
+            {t("archive.deleteDescription", { size: formatArchiveBytes(bytes), rows: rows.toLocaleString(locale) })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -1660,6 +1661,7 @@ function ArchiveDeleteDialog({
 
 function TaskArchivesPanel({ onChanged }: { onChanged: () => void }) {
   const t = useTranslations("tasksPage");
+  const locale = useLocale();
   const [archives, setArchives] = React.useState<TaskArchive[]>([]);
   const [query, setQuery] = React.useState("");
   const [stateFilter, setStateFilter] = React.useState("all");
@@ -1939,7 +1941,7 @@ function TaskArchivesPanel({ onChanged }: { onChanged: () => void }) {
                       {archive.category_name || t("archive.uncategorized")}
                     </TableCell>
                     <TableCell className="text-muted-foreground whitespace-nowrap text-xs">
-                      {archiveDate(archive.archived_at || archive.requested_at)}
+                      {archiveDate(archive.archived_at || archive.requested_at, locale)}
                     </TableCell>
                     <TableCell
                       className="whitespace-nowrap text-xs"
@@ -1947,7 +1949,7 @@ function TaskArchivesPanel({ onChanged }: { onChanged: () => void }) {
                     >
                       {archiveCompressionLabel(t, archive)}
                     </TableCell>
-                    <TableCell className="text-xs tabular-nums">{archiveDataTotal(archive).toLocaleString()}</TableCell>
+                    <TableCell className="text-xs tabular-nums">{archiveDataTotal(archive).toLocaleString(locale)}</TableCell>
                     <TableCell>
                       <div className="flex min-w-0 flex-col gap-1.5">
                         <ArchiveStateBadge state={archive.state} />

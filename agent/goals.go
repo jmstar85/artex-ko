@@ -68,18 +68,18 @@ const goalsScopeTail = `
 
 // goalsSystem assembles the goals-decomposer system prompt: the rendered body
 // [A] (DB-overridable), the code-owned scope-extraction tail when add_task_scope
-// is wired (withScope), and the code-owned Korean output-language tail [C] last —
+// is wired (withScope), and the code-owned selected output-language tail [C] last —
 // mirroring chatSystem/plannerSystem so a DB-edited body can never drop the tail.
 // DecomposeGoalsWithProvider and the localization test share this one assembly, so
 // the langDirective tail can't drift between runtime and test. EngagementDescription
 // is intentionally left empty: the task description rides in the user message, not
 // the {{.EngagementDescription}} var (see DecomposeGoalsWithProvider).
-func goalsSystem(dataDir string, withScope bool) string {
+func goalsSystem(dataDir string, withScope bool, locale string) string {
 	sys := renderSystem("goals", goalsDefaultTmpl, GoalsVars{DataDir: dataDir, Now: nowStr()})
 	if withScope {
 		sys += goalsScopeTail
 	}
-	return sys + langDirective()
+	return sys + langDirective(locale)
 }
 
 // GoalSpec is one decomposed objective.
@@ -146,7 +146,7 @@ func DecomposeGoalsWithProvider(ctx context.Context, prov llm.Provider, dataDir,
 	// tail last so a DB-edited body can't drop it. Description rides in the user
 	// message, NOT the {{.EngagementDescription}} var, so a prompt can't inject it twice.
 	withScope := as != nil && taskID > 0
-	sys := goalsSystem(dataDir, withScope)
+	sys := goalsSystem(dataDir, withScope, LocaleFromContext(ctx))
 	// set_constraints 始终可用(不依赖 asset store):正文已含「先抽操作约束再拆目标」这步
 	// (可在 agent 编辑页改措辞),这里只需接上工具。
 	tools := []actool.CoreTool{tsx.setGoals(), tsx.setConstraints()}
@@ -157,7 +157,7 @@ func DecomposeGoalsWithProvider(ctx context.Context, prov llm.Provider, dataDir,
 	if d := strings.TrimSpace(desc); d != "" {
 		userMsg += "\n\n작업 설명(배경 정보 — 표적 범위/flag 개수/교전 수칙이 포함될 수 있음; 참고용일 뿐이며, 여기에 언급되지 않은 내용을 지어내지 마십시오):\n" + d
 	}
-	userMsg += langReminder()
+	userMsg += langReminder(LocaleFromContext(ctx))
 	// Use captureRun so every LLM step is emitted as an activity record (visible in
 	// the plan tab under the round-0 marker). Falls back gracefully when emit is nil.
 	captureEmit := func(r db.Activity) {

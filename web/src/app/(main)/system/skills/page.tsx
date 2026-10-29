@@ -14,7 +14,7 @@ import {
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import {
@@ -42,9 +42,9 @@ import { useBuiltinText } from "@/lib/builtin-i18n";
 import type { Agent, MCPServer, MissingSkill, SkillCall, SkillItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-function fmtTime(ts: string | undefined, never: string) {
+function fmtTime(ts: string | undefined, never: string, locale: string) {
   if (!ts) return never;
-  return new Date(ts).toLocaleString("ko-KR", {
+  return new Date(ts).toLocaleString(locale, {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
@@ -149,6 +149,7 @@ function SkillsOverview({
   onSelect: (name: string) => void;
 }) {
   const t = useTranslations("skillsPage");
+  const locale = useLocale();
   const agg = React.useMemo(() => {
     const totalCalls = skills.reduce((n, s) => n + s.calls, 0);
     const used = skills.filter((s) => s.calls > 0);
@@ -264,7 +265,7 @@ function SkillsOverview({
                     {s.name}
                   </span>
                   <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
-                    {fmtTime(s.last_used, t("neverCalled"))}
+                    {fmtTime(s.last_used, t("neverCalled"), locale)}
                   </span>
                 </button>
               ))}
@@ -303,6 +304,7 @@ function SkillsOverview({
 // ── Page ──────────────────────────────────────────────────────────────────
 export default function SkillsPage() {
   const t = useTranslations("skillsPage");
+  const locale = useLocale();
   const lx = useBuiltinText();
   const [skills, setSkills] = React.useState<SkillItem[]>([]);
   const [agents, setAgents] = React.useState<Agent[]>([]);
@@ -853,7 +855,7 @@ export default function SkillsPage() {
                       {t("callsCount", { count: m.calls })}
                     </span>
                     <span className="shrink-0 text-xs text-muted-foreground">
-                      {fmtTime(m.last_used, t("neverCalled"))}
+                      {fmtTime(m.last_used, t("neverCalled"), locale)}
                     </span>
                   </div>
                 ))}
@@ -936,7 +938,7 @@ export default function SkillsPage() {
                       {s.calls > 0 && (
                         <span
                           className="shrink-0 rounded bg-muted px-1 text-[10px] tabular-nums text-muted-foreground"
-                          title={t("callCountTitle", { count: s.calls, last: fmtTime(s.last_used, t("neverCalled")) })}
+                          title={t("callCountTitle", { count: s.calls, last: fmtTime(s.last_used, t("neverCalled"), locale) })}
                         >
                           {s.calls}
                         </span>
@@ -1052,9 +1054,9 @@ export default function SkillsPage() {
                     <div className="rounded-md border p-2">
                       <p
                         className="truncate text-sm font-medium"
-                        title={fmtTime(selectedSkill.last_used, t("neverCalled"))}
+                        title={fmtTime(selectedSkill.last_used, t("neverCalled"), locale)}
                       >
-                        {fmtTime(selectedSkill.last_used, t("neverCalled"))}
+                        {fmtTime(selectedSkill.last_used, t("neverCalled"), locale)}
                       </p>
                       <p className="text-xs text-muted-foreground">{t("recent")}</p>
                     </div>
@@ -1083,7 +1085,7 @@ export default function SkillsPage() {
                             className="flex items-center gap-2 border-b px-2 py-1 text-xs last:border-b-0"
                           >
                             <span className="tabular-nums text-muted-foreground">
-                              {fmtTime(c.ts, t("neverCalled"))}
+                              {fmtTime(c.ts, t("neverCalled"), locale)}
                             </span>
                             <Badge variant="outline" className="font-normal">
                               {c.agent_key || "—"}

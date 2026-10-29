@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { ArrowUpIcon, MessageCircleQuestionIcon, SquareIcon, Trash2Icon, XIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Markdown } from "@/components/markdown";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -51,6 +51,7 @@ function SidePanel({
   composerLayout: ComposerLayout;
 }) {
   const t = useTranslations("sideQuestion");
+  const locale = useLocale();
   const inlineComposer = composerLayout === "inline";
   const [confirm, setConfirm] = useState(false);
   const viewport = useRef<HTMLDivElement>(null);
@@ -86,7 +87,7 @@ function SidePanel({
         {side.snapshot ? (
           <>
             <p>{side.snapshot.model.model}</p>
-            <p>{t("contextUpdatedAt", { time: new Date(side.snapshot.captured_at).toLocaleString() })}</p>
+            <p>{t("contextUpdatedAt", { time: new Date(side.snapshot.captured_at).toLocaleString(locale) })}</p>
           </>
         ) : (
           t("firstRunHint")
@@ -121,8 +122,8 @@ function SidePanel({
               <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
                 <Badge variant="secondary">{t(`status.${item.status}`)}</Badge>
                 <span className="truncate">{item.model.model}</span>
-                <time dateTime={item.snapshot_at} title={new Date(item.snapshot_at).toLocaleString()}>
-                  {t("contextTime", { time: new Date(item.snapshot_at).toLocaleTimeString() })}
+                <time dateTime={item.snapshot_at} title={new Date(item.snapshot_at).toLocaleString(locale)}>
+                  {t("contextTime", { time: new Date(item.snapshot_at).toLocaleTimeString(locale) })}
                 </time>
               </div>
               {item.context?.estimated_input_tokens != null && (

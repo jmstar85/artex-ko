@@ -24,7 +24,27 @@ func TestCoreTaskLifecyclePG(t *testing.T) {
 	}
 	defer m.Close()
 	td := t.TempDir()
-	s := New(context.Background(), m, td, td, td)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	s := New(ctx, m, td, td, td)
+	defer func() {
+		// New은 이번 테스트 작업 외에 DB에 남은 작업의 실행도 복원한다.
+		// DB/TempDir보다 먼저 모든 실행을 취소하고 기록 쓰기 종료를 기다린다.
+		cancel()
+		tasks := m.List()
+		for _, task := range tasks {
+			s.beginTaskDelete(task.ID)
+		}
+		s.archiveWG.Wait()
+		drainCtx, cancelDrain := context.WithTimeout(context.Background(), taskDeleteDrainTimeout)
+		defer cancelDrain()
+		for _, task := range tasks {
+			if err := s.waitTaskQuiescent(drainCtx, task.ID); err != nil {
+				t.Errorf("task %s shutdown: %v", task.ID, err)
+			}
+			s.engine.StopTask(task.ID)
+		}
+	}()
 	h := s.Handler()
 	tok, err := signJWT(s.jwtKey)
 	if err != nil {

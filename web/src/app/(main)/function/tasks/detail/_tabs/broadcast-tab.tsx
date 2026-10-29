@@ -20,7 +20,7 @@ import {
   SearchIcon,
   TargetIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -156,13 +156,26 @@ function prettyPayload(raw: string | undefined, emptyLabel: string): string {
   }
 }
 
-const dayFmt = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "short" });
-const clockFmt = new Intl.DateTimeFormat("ko-KR", {
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-  hour12: false,
-});
+const dayFmtCache = new Map<string, Intl.DateTimeFormat>();
+const clockFmtCache = new Map<string, Intl.DateTimeFormat>();
+
+function dayFmt(locale: string): Intl.DateTimeFormat {
+  let f = dayFmtCache.get(locale);
+  if (!f) {
+    f = new Intl.DateTimeFormat(locale, { month: "long", day: "numeric", weekday: "short" });
+    dayFmtCache.set(locale, f);
+  }
+  return f;
+}
+
+function clockFmt(locale: string): Intl.DateTimeFormat {
+  let f = clockFmtCache.get(locale);
+  if (!f) {
+    f = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+    clockFmtCache.set(locale, f);
+  }
+  return f;
+}
 
 function NodeStateBadge({ node }: { node: TaskNode }) {
   const t = useTranslations("taskDetail.broadcastTab");
@@ -228,6 +241,7 @@ function AssetList({ assets, dense = false }: { assets: FindingAsset[]; dense?: 
 // 数据来自本页已经拿到的 refs,不额外发请求——播报接口已经把邻居节点整份带回来了。
 function RelatedNodeCard({ node, assets }: { node: TaskNode; assets: FindingAsset[] }) {
   const t = useTranslations("taskDetail.broadcastTab");
+  const locale = useLocale();
   const kind = viewKind(node);
   const ts = Date.parse(node.ts);
   const summary = summaryOf(node);
@@ -244,7 +258,7 @@ function RelatedNodeCard({ node, assets }: { node: TaskNode; assets: FindingAsse
       <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
         <span>{t("fieldType", { label: t(`kind.${kindKeyOf(kind)}`) })}</span>
         <span>{t("fieldSource", { origin: node.origin || "system" })}</span>
-        <span>{Number.isNaN(ts) ? node.ts : new Date(ts).toLocaleString("ko-KR")}</span>
+        <span>{Number.isNaN(ts) ? node.ts : new Date(ts).toLocaleString(locale)}</span>
       </div>
       <p className="line-clamp-4 text-xs break-words">{summary || t("noSummary")}</p>
       <AssetList assets={assets} dense />
@@ -322,6 +336,7 @@ function BroadcastRow({
   fresh: boolean;
 }) {
   const t = useTranslations("taskDetail.broadcastTab");
+  const locale = useLocale();
   const [open, setOpen] = React.useState(false);
   const kind = viewKind(node);
   const meta = KIND_META[kindKeyOf(kind)];
@@ -345,7 +360,7 @@ function BroadcastRow({
     <div className={cn("relative grid grid-cols-[4.5rem_1.75rem_1fr] gap-x-2", fresh && "bg-primary/5")}>
       {/* 时间列 */}
       <div className="py-3 text-right text-xs text-muted-foreground tabular-nums">
-        <div>{Number.isNaN(ts) ? "--:--:--" : clockFmt.format(ts)}</div>
+        <div>{Number.isNaN(ts) ? "--:--:--" : clockFmt(locale).format(ts)}</div>
         <div className="text-[11px] opacity-70">{relTime(ts, now)}</div>
       </div>
 
@@ -399,7 +414,7 @@ function BroadcastRow({
               </span>
               <span>{t("fieldType", { label: t(`kind.${kindKeyOf(kind)}`) })}</span>
               <span>{t("fieldSource", { origin: node.origin || "system" })}</span>
-              <span>{Number.isNaN(ts) ? node.ts : new Date(ts).toLocaleString("ko-KR")}</span>
+              <span>{Number.isNaN(ts) ? node.ts : new Date(ts).toLocaleString(locale)}</span>
             </div>
             {node.state === "deleted" && node.delete_reason && (
               <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs">
@@ -430,6 +445,7 @@ function BroadcastRow({
 export function BroadcastTab({ taskId }: { taskId: string }) {
   const t = useTranslations("taskDetail.broadcastTab");
   const tp = useTranslations("pagination");
+  const locale = useLocale();
   const [kinds, setKinds] = React.useState<ExploreKind[]>([]);
   const [queryInput, setQueryInput] = React.useState("");
   const [query, setQuery] = React.useState("");
@@ -556,7 +572,7 @@ export function BroadcastTab({ taskId }: { taskId: string }) {
   const groups: Array<{ day: string; rows: TaskNode[] }> = [];
   for (const node of items) {
     const ts = Date.parse(node.ts);
-    const day = Number.isNaN(ts) ? t("unknownDay") : dayFmt.format(ts);
+    const day = Number.isNaN(ts) ? t("unknownDay") : dayFmt(locale).format(ts);
     const last = groups[groups.length - 1];
     if (last && last.day === day) last.rows.push(node);
     else groups.push({ day, rows: [node] });

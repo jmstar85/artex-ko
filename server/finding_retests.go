@@ -130,7 +130,7 @@ func (s *Server) startFindingRetest(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 503, errFindingRetestServiceStopping)
 		return
 	}
-	retest, conv, created, err := pg.CreateFindingRetest(r.Context(), id, req.Notes)
+	retest, conv, created, err := pg.CreateFindingRetestWithLocale(r.Context(), id, req.Notes, requestLocale(r))
 	if errors.Is(err, sql.ErrNoRows) {
 		writeErr(w, 404, "finding not found")
 		return

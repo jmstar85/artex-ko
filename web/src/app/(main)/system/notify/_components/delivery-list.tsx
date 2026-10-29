@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { RefreshCwIcon, RotateCcwIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/status-badge";
@@ -18,6 +18,7 @@ import type { NotificationChannel, NotificationDelivery } from "@/lib/types";
 // DeliveryList 是投递记录表：可按渠道与状态筛选，失败项可手动重发。
 export function DeliveryList({ channels }: { channels: NotificationChannel[] }) {
   const t = useTranslations("notifyPage");
+  const locale = useLocale();
   // 전송 상태·심각도 라벨은 전역 공유 `status` 네임스페이스에서 온다(StatusBadge 와 동일 출처).
   // lib/status.ts 의 중국어는 상류 대조용 죽은 폴백이라 직접 쓰지 않는다(턴 129 함정 참조).
   const ts = useTranslations("status");
@@ -129,7 +130,7 @@ export function DeliveryList({ channels }: { channels: NotificationChannel[] }) 
               rows.map((d) => (
                 <TableRow key={d.id}>
                   <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {formatTime(d.created_at)}
+                    {formatTime(d.created_at, locale)}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -180,8 +181,8 @@ export function DeliveryList({ channels }: { channels: NotificationChannel[] }) 
   );
 }
 
-function formatTime(iso: string): string {
+function formatTime(iso: string, locale: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString("ko-KR", { hour12: false });
+  return d.toLocaleString(locale, { hour12: false });
 }

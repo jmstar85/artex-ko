@@ -392,6 +392,7 @@ func (s *Server) createGoals(ctx context.Context, t *Task, emit func(db.Activity
 	if t == nil {
 		return nil
 	}
+	ctx = agent.WithLocale(ctx, t.Locale)
 	// Use the SAME LLM the task runs on (its pinned profile, else the active profile),
 	// NOT agent.FromEnv() — the LLM is configured via the UI (DB profile), not env vars,
 	// so FromEnv returned empty and every task silently fell back to the crude rule

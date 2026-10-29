@@ -15,7 +15,7 @@ import {
   ShieldAlertIcon,
   TriangleAlertIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { FindingRetestDialog } from "@/components/finding-retest-dialog";
@@ -130,6 +130,7 @@ const EMPTY_STATS: FindingStats = {
 
 export default function FindingsPage() {
   const t = useTranslations("findings");
+  const locale = useLocale();
   const tStatus = useTranslations("status");
   const [view, setView] = React.useState<FindingView>("flat");
   const [severity, setSeverity] = React.useState<"all" | Severity>("all");
@@ -1076,7 +1077,7 @@ export default function FindingsPage() {
                           );
                         })}
                         <span className="text-xs tabular-nums text-muted-foreground">
-                          {fmtTime(group.last_found_at)}
+                          {fmtTime(group.last_found_at, locale)}
                         </span>
                         {group.task_id !== null && (
                           <Button size="icon-sm" variant="ghost" asChild>

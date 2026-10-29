@@ -7,10 +7,15 @@ import {
   type DayButton,
   type Locale,
 } from "react-day-picker"
+import { enUS, ko, zhCN } from "react-day-picker/locale"
+import { useLocale } from "next-intl"
 
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from "lucide-react"
+
+// Maps the active UI locale to the react-day-picker locale (month/weekday names and ARIA labels).
+const CALENDAR_LOCALES: Record<string, Partial<Locale>> = { ko, en: enUS, zh: zhCN }
 
 function Calendar({
   className,
@@ -18,7 +23,7 @@ function Calendar({
   showOutsideDays = true,
   captionLayout = "label",
   buttonVariant = "ghost",
-  locale,
+  locale: localeProp,
   formatters,
   components,
   ...props
@@ -26,6 +31,8 @@ function Calendar({
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
 }) {
   const defaultClassNames = getDefaultClassNames()
+  const uiLocale = useLocale()
+  const locale = localeProp ?? CALENDAR_LOCALES[uiLocale] ?? enUS
 
   return (
     <DayPicker

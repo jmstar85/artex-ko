@@ -13,7 +13,7 @@ import {
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -33,8 +33,8 @@ function fmtSize(n: number): string {
   if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
   return `${(n / 1024 / 1024 / 1024).toFixed(1)} GB`;
 }
-function fmtTime(ms: number): string {
-  return new Date(ms).toLocaleString("ko-KR", {
+function fmtTime(ms: number, locale: string): string {
+  return new Date(ms).toLocaleString(locale, {
     year: "2-digit",
     month: "2-digit",
     day: "2-digit",
@@ -52,6 +52,7 @@ type EditState = {
 
 export default function WorkspacePage() {
   const t = useTranslations("workspace");
+  const locale = useLocale();
   const [path, setPath] = React.useState("");
   const [entries, setEntries] = React.useState<WorkspaceEntry[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -227,7 +228,7 @@ export default function WorkspacePage() {
                   <TableCell className="text-muted-foreground text-right font-mono text-xs">
                     {e.dir ? "—" : fmtSize(e.size)}
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">{fmtTime(e.mtime)}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">{fmtTime(e.mtime, locale)}</TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
                       {!e.dir && (

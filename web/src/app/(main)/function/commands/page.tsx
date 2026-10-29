@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { BarChart3Icon, ChevronLeftIcon, ChevronRightIcon, Loader2Icon, SearchIcon, TerminalIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,8 @@ import { api } from "@/lib/api";
 import type { CommandRecord, ToolStat } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-function fmtTime(ts: string) {
-  return new Date(ts).toLocaleString("ko-KR", {
+function fmtTime(ts: string, locale: string) {
+  return new Date(ts).toLocaleString(locale, {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
@@ -52,6 +52,7 @@ const CMD_MAX_LEN = 80;
 
 export default function CommandsPage() {
   const t = useTranslations("commands");
+  const locale = useLocale();
   const tp = useTranslations("pagination");
   const [page, setPage] = React.useState(0);
   const [size, setSize] = React.useState(50);
@@ -238,7 +239,7 @@ export default function CommandsPage() {
                       onClick={() => setSelected(cmd)}
                     >
                       <TableCell className="text-xs text-muted-foreground tabular-nums">
-                        {fmtTime(cmd.created_at)}
+                        {fmtTime(cmd.created_at, locale)}
                       </TableCell>
                       <TableCell className="text-xs font-mono text-muted-foreground">#{cmd.exploration_id}</TableCell>
                       <TableCell>
@@ -345,7 +346,7 @@ export default function CommandsPage() {
             <>
               <SheetHeader className="border-b px-5 py-4">
                 <SheetTitle className="pr-8">{t("detailTitle")}</SheetTitle>
-                <SheetDescription>{fmtTime(selected.created_at)}</SheetDescription>
+                <SheetDescription>{fmtTime(selected.created_at, locale)}</SheetDescription>
                 <div className="flex flex-wrap items-center gap-2 pt-2">
                   <Badge variant="outline" className="text-xs font-mono">
                     #{selected.exploration_id}

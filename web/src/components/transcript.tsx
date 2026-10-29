@@ -16,7 +16,7 @@ import {
   Wrench,
   XIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { ApprovalDetail } from "@/components/approval-records";
@@ -130,16 +130,17 @@ function groupSteps(steps: Activity[], chat: boolean): Group[] {
 const kindKey = (k: string) => (k === "thinking" ? "thinking" : k === "result" ? "result" : "note");
 
 function ActivityTime({ ts }: { ts: string }) {
+  const locale = useLocale();
   const date = new Date(ts);
   if (!ts || Number.isNaN(date.getTime())) return null;
   return (
     <time
       dateTime={date.toISOString()}
-      title={date.toLocaleString("ko-KR")}
+      title={date.toLocaleString(locale)}
       className="text-[10px] text-muted-foreground tabular-nums"
       suppressHydrationWarning
     >
-      {date.toLocaleString("ko-KR", {
+      {date.toLocaleString(locale, {
         month: "2-digit",
         day: "2-digit",
         hour: "2-digit",

@@ -60,7 +60,7 @@ export function TodoPopover({
           className="text-muted-foreground/70 hover:text-primary flex items-center gap-0.5 text-xs disabled:pointer-events-none disabled:opacity-40"
         >
           <ListTodo className="size-3" />
-          Todo
+          {tr("label")}
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="max-h-80 w-80 overflow-auto p-2">

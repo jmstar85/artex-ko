@@ -20,7 +20,7 @@ func TestChatNowVarRenders(t *testing.T) {
 		return "", false
 	}
 
-	out := chatSystem("tec_benchmark", "/app/data", "/tmp/x")
+	out := chatSystem("tec_benchmark", "/app/data", "/tmp/x", "")
 	if !strings.Contains(out, "当前时间：") {
 		t.Fatalf("custom prompt body missing, likely fell back to default: %q", out)
 	}
@@ -41,7 +41,7 @@ func TestChatDataDirVarRenders(t *testing.T) {
 		return "数据根目录：{{.DataDir}}", true
 	}
 
-	out := chatSystem("tec_benchmark", "/app/data", "/tmp/x")
+	out := chatSystem("tec_benchmark", "/app/data", "/tmp/x", "")
 	if !strings.Contains(out, "数据根目录：/app/data") {
 		t.Fatalf("{{.DataDir}} did not render the data root: %q", out)
 	}
@@ -57,7 +57,7 @@ func TestChatUnknownVarFallsBack(t *testing.T) {
 		return "引用了不存在的变量：{{.Bogus}}", true
 	}
 
-	out := chatSystem("whatever", "/app/data", "/tmp/x")
+	out := chatSystem("whatever", "/app/data", "/tmp/x", "")
 	if strings.Contains(out, "引用了不存在的变量") {
 		t.Fatalf("broken template should have fallen back, got custom body: %q", out)
 	}

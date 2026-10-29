@@ -339,9 +339,9 @@ const plannerDefaultTmpl = `你是一个网络安全平台授权渗透测试系�
 
 不重复、不硬凑；但目标未达成、又有未覆盖且更深的打法时，该派就派。简洁、聚焦、高效。`
 
-func plannerSystem(goal, dataDir, workDir string) string {
+func plannerSystem(goal, dataDir, workDir, locale string) string {
 	body := renderSystem("planner", plannerDefaultTmpl, PlannerVars{Goal: goal, DataDir: dataDir, Now: nowStr()})
-	return body + artifactSpec(workDir) + langDirective()
+	return body + artifactSpec(workDir) + langDirective(locale)
 }
 
 // Plan runs one planning round. emit, if non-nil, receives the planner's execution
@@ -390,7 +390,7 @@ func (p *Planner) Plan(ctx context.Context, taskID int64, as *db.AssetStore, ts 
 	// 本任务的工作目录 <workDir>/tasks/<taskID>，先建好。
 	taskDir := ensureRunDir(p.workDir, taskID, 0)
 	ctx = intercept.WithReviewContext(ctx, taskDir, intercept.ReviewBackground{})
-	sysBody := plannerSystem(goal, p.workDir, taskDir)
+	sysBody := plannerSystem(goal, p.workDir, taskDir, LocaleFromContext(ctx))
 	if p.wantConstraints() {
 		sysBody += constraintBlock(ts) // 操作约束(若有)注入系统提示,框定探索边界
 	}
@@ -460,7 +460,7 @@ func (p *Planner) Plan(ctx context.Context, taskID int64, as *db.AssetStore, ts 
 	}
 	input := lead + situational + "\n\n위 태세에 근거해 목표를 판정하십시오. 목표가 【진정으로 달성】(목표 성과를 확보했거나 목표 취약점을 확인)되었으면 prove_goal 로 하나씩 표시하십시오. **절대 하한선: 목표가 아직 달성되지 않았고 현재 open 또는 running 의도가 하나도 없으면(frontier_open=0 이고 running_intents 가 비어 있음), 이번 라운드에는 목표 진척에 기여하는 의도를 최소 하나 산출해야 합니다 — 이때는 기다릴 수 있는 돌고 있는 work 도, 대기 중인 방향도 없으므로 0개 의도 산출은 작업 정지입니다. 이미 open/running 의도가 진행 중이거나 목표가 달성된 경우에만 이번 라운드에 새 의도를 산출하지 않을 수 있습니다.**" +
 		renderPlannerTodos(opts.Todos.List()) +
-		langReminder()
+		langReminder(LocaleFromContext(ctx))
 	// MaxDuration 现在会在墙钟到点打断在跑工具并就地进收尾(在活 ctx 上),单轮卡死不再
 	// 绕过收尾,无需外部硬 ctx 兜底。ctx 只承载 pause / kill / shutdown。
 	_, _, err = captureRun(ctx, opts, input,

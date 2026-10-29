@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { TrafficEvidenceViewer } from "@/components/traffic-evidence-viewer";
@@ -43,6 +43,7 @@ export function FindingTrafficPanel({
   onChanged: () => void;
 }) {
   const t = useTranslations("findings");
+  const locale = useLocale();
   const [data, setData] = React.useState<FindingTraffic | null>(null);
   const [error, setError] = React.useState("");
   const [adding, setAdding] = React.useState(false);
@@ -153,7 +154,7 @@ export function FindingTrafficPanel({
                 {b.note ? <p className="text-sm whitespace-pre-wrap">{b.note}</p> : null}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs text-muted-foreground">
-                    {new Date(b.snapshot.captured_at * 1000).toLocaleString("ko-KR")}
+                    {new Date(b.snapshot.captured_at * 1000).toLocaleString(locale)}
                   </span>
                   <div className="flex flex-wrap gap-1">
                     <Button variant="outline" size="sm" onClick={() => setPreview(b.id)}>

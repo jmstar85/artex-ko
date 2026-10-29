@@ -13,7 +13,7 @@ import {
   Trash2Icon,
   XIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import {
   AlertDialog,
@@ -36,8 +36,8 @@ import { api } from "@/lib/api";
 import type { LLMRecordDetail, LLMRecordItem, LLMTask } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-function fmtTime(ts: string) {
-  return new Date(ts).toLocaleString("ko-KR", {
+function fmtTime(ts: string, locale: string) {
+  return new Date(ts).toLocaleString(locale, {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
@@ -119,6 +119,7 @@ const PAGE_SIZES = [25, 50, 100];
 
 export default function LLMRecordsPage() {
   const t = useTranslations("llmRecords");
+  const locale = useLocale();
   const tp = useTranslations("pagination");
   const [page, setPage] = React.useState(0);
   const [size, setSize] = React.useState(50);
@@ -436,7 +437,7 @@ export default function LLMRecordsPage() {
                       className={cn("cursor-pointer", selected?.id === rec.id && "bg-accent hover:bg-accent")}
                       onClick={() => setSelected(rec)}
                     >
-                      <TableCell className="text-xs text-muted-foreground tabular-nums">{fmtTime(rec.ts)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground tabular-nums">{fmtTime(rec.ts, locale)}</TableCell>
                       <TableCell className="text-xs font-mono text-muted-foreground">
                         {rec.task_id ? `#${rec.task_id}` : "-"}
                       </TableCell>
@@ -499,7 +500,7 @@ export default function LLMRecordsPage() {
                   {t("taskBadge", { id: selected.task_id })}
                 </Badge>
               )}
-              <span className="text-xs text-muted-foreground">{fmtTime(selected.ts)}</span>
+              <span className="text-xs text-muted-foreground">{fmtTime(selected.ts, locale)}</span>
               <span className={cn("text-xs", selected.latency_ms > 30000 && "text-amber-500")}>
                 {fmtLatency(selected.latency_ms)}
               </span>

@@ -5,7 +5,7 @@ import * as React from "react";
 import Link from "next/link";
 
 import { ArrowDownIcon, ArrowUpIcon, ArrowUpRightIcon, ChevronRightIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/status-badge";
@@ -51,6 +51,7 @@ function Row({
 }) {
   const t = useTranslations("taskDetail.findings");
   const tStatus = useTranslations("status");
+  const locale = useLocale();
   const [open, setOpen] = React.useState(false);
   return (
     <div className="border-b last:border-b-0">
@@ -110,7 +111,7 @@ function Row({
           <StatusBadge domain="finding" value={f.status} dot />
         )}
         <span className="hidden shrink-0 text-xs text-muted-foreground md:block">
-          {new Date(f.ts).toLocaleString("ko-KR")}
+          {new Date(f.ts).toLocaleString(locale)}
         </span>
         {f.finding_id && (
           <Link

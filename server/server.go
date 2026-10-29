@@ -207,6 +207,7 @@ type provEntry struct {
 // from the SAME task into one conversation before it starts (interval fires don't merge).
 type triggeredRun struct {
 	agentKey  string
+	locale    string
 	title     string
 	message   string // 事件正文(触发语 + 工具/入参/返回等);不含任务描述/目标头
 	taskID    int64  // source task for finding/goal triggers; 0 for interval/none
@@ -1602,6 +1603,7 @@ func (s *Server) createTask(w http.ResponseWriter, r *http.Request) {
 	}
 	t, err := s.m.CreateTaskWithOptions(req.Description, req.Goal, db.TaskCreateOptions{
 		Name: strings.TrimSpace(req.Name), CategoryID: req.CategoryID,
+		Locale: requestLocale(r),
 		SourceTaskIDs: sourceIDs, CompanyIDs: req.CompanyIDs, LLMProfileIDs: req.LLMProfileIDs,
 		TimeoutSeconds: req.TimeoutSeconds, PlanHeartbeatSeconds: req.PlanHeartbeatSeconds,
 		CoverageEnabled: req.CoverageEnabled,
@@ -3787,7 +3789,7 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 409, errMainAgentBusy)
 		return
 	}
-	ctx, cancel := context.WithCancelCause(s.ctx)
+	ctx, cancel := context.WithCancelCause(agent.WithLocale(s.ctx, requestLocaleOr(r, t.Locale)))
 	ctx = intercept.WithReviewContext(ctx, "", intercept.ReviewBackground{Source: intercept.BackgroundUserMessage, Text: req.Message})
 	s.chatBusy[t.ID] = true
 	s.chatCancel[t.ID] = cancel
